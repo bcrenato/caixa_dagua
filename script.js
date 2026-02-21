@@ -66,16 +66,31 @@ function atualizarInterface(nivel) {
   if (nivel <= 10) {
     water.style.background = "linear-gradient(to top,#ff0000,#ff4d4d)";
     statusText.innerText = "CRÍTICO";
+    
+    alertaGrande.innerText = "⚠ LIGAR A BOMBA";
+    alertaGrande.style.background = "rgba(255, 0, 0, 0.9)";
     alertaGrande.style.display = "block";
   } 
   else if (nivel <= 30) {
     water.style.background = "linear-gradient(to top,#ff7b00,#ffc107)";
     statusText.innerText = "Baixo";
+
+    alertaGrande.innerText = "⚠ LIGAR A BOMBA";
+    alertaGrande.style.background = "rgba(255, 120, 0, 0.9)";
+    alertaGrande.style.display = "block";
+  } 
+  else if (nivel >= 95) {
+    water.style.background = "linear-gradient(to top,#0077ff,#00c6ff)";
+    statusText.innerText = "Quase Cheio";
+
+    alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
+    alertaGrande.style.background = "rgba(0, 150, 255, 0.9)";
     alertaGrande.style.display = "block";
   } 
   else {
     water.style.background = "linear-gradient(to top,#0077ff,#00c6ff)";
     statusText.innerText = "Normal";
+
     alertaGrande.style.display = "none";
   }
 }
