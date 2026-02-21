@@ -37,14 +37,22 @@ const grafico = new Chart(ctx, {
       label: 'Nível (%)',
       data: [],
       borderColor: '#00c6ff',
-      backgroundColor: 'rgba(0,198,255,0.1)',
-      tension: 0.4
+      backgroundColor: 'rgba(0,198,255,0.15)',
+      fill: true,
+      tension: 0, // 🔥 sem curva suavizada
+      pointRadius: 2
     }]
   },
   options: {
     responsive: true,
+    animation: false, // 🔥 desativa animação do gráfico
     plugins: { legend: { display: false } },
-    scales: { y: { min: 0, max: 100 } }
+    scales: {
+      y: {
+        min: 0,
+        max: 100
+      }
+    }
   }
 });
 
@@ -108,7 +116,7 @@ if (MODO_SIMULACAO) {
       grafico.data.datasets[0].data.shift();
     }
 
-    grafico.update();
+    grafico.update('none');
 
   }, 1000);
 }
