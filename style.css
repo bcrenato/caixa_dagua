@@ -41,8 +41,7 @@ body {
   max-height: 49%;   /* limita o topo da água */
 
   background: linear-gradient(to top, #0077ff, #00c6ff);
-  transition: height 0.8s ease;
-  overflow: hidden;
+  overflowd: hidden;
 }
 
 .wave {
