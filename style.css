@@ -96,3 +96,19 @@ h1 {
   padding: 15px;
   border-radius: 15px;
 }
+
+.titulo-box {
+  margin-bottom: 15px;
+}
+
+.titulo-principal {
+  font-size: 22px;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.subtitulo {
+  font-size: 13px;
+  margin: 2px 0 0 0;
+  opacity: 0.7;
+}
