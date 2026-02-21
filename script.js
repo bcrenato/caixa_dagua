@@ -1,18 +1,18 @@
 const alertaGrande = document.getElementById("alertaGrande");
 
 // ===== CONFIGURAÇÃO =====
-const MODO_SIMULACAO = false; // 🟢 Alterado para false para usar o Firebase
+const MODO_SIMULACAO = false; 
 const AREA_UTIL = 49; 
 
-// CONFIGURAÇÕES DO SEU FIREBASE (Cole aqui o que você pegou no Console)
+// CONFIGURAÇÕES DO SEU FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
-  authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
-  databaseURL: "https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com",
-  projectId: "monitor-caixa-agua-ff63a",
-  storageBucket: "monitor-caixa-agua-ff63a.firebasestorage.app",
-  messagingSenderId: "176234978770",
-  appId: "1:176234978770:web:e193d8242f4f111abd3c0b"
+  authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
+  databaseURL: "https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com",
+  projectId: "monitor-caixa-agua-ff63a",
+  storageBucket: "monitor-caixa-agua-ff63a.firebasestorage.app",
+  messagingSenderId: "176234978770",
+  appId: "1:176234978770:web:e193d8242f4f111abd3c0b"
 };
 
 // Inicializa o Firebase
@@ -30,7 +30,7 @@ const statusText = document.getElementById("status");
 let nivelAtual = 50;
 let nivelDestino = 50;
 
-// ===== ANIMAÇÃO CONTÍNUA =====
+// ===== ANIMAÇÃO DA ÁGUA =====
 function animar() {
   nivelAtual += (nivelDestino - nivelAtual) * 0.1;
   water.style.height = (nivelAtual * AREA_UTIL / 100) + "%";
@@ -39,7 +39,7 @@ function animar() {
 }
 requestAnimationFrame(animar);
 
-// ===== GRÁFICO =====
+// ===== GRÁFICO (Chart.js) =====
 const ctx = document.getElementById('grafico').getContext('2d');
 const grafico = new Chart(ctx, {
   type: 'line',
@@ -63,11 +63,10 @@ const grafico = new Chart(ctx, {
   }
 });
 
-// ===== ATUALIZAÇÃO VISUAL =====
+// ===== LÓGICA DE ALERTAS E INTERFACE =====
 function atualizarInterface(nivel) {
   nivelDestino = nivel;
 
-  // Lógica de cores e alertas
   if (nivel <= 20) {
     water.style.background = "linear-gradient(to top,#ff0000,#ff4d4d)";
     statusText.innerText = "CRÍTICO";
@@ -95,7 +94,7 @@ function atualizarInterface(nivel) {
     alertaGrande.style.display = "none";
   }
 
-  // Atualiza o gráfico com o novo ponto real
+  // Atualiza pontos do gráfico
   grafico.data.labels.push(new Date().toLocaleTimeString());
   grafico.data.datasets[0].data.push(nivel);
   if (grafico.data.labels.length > 20) {
@@ -105,7 +104,7 @@ function atualizarInterface(nivel) {
   grafico.update('none');
 }
 
-// ===== CONEXÃO REAL COM FIREBASE =====
+// ===== ESCUTA O FIREBASE EM TEMPO REAL =====
 if (!MODO_SIMULACAO) {
   database.ref('nivel').on('value', (snapshot) => {
     const data = snapshot.val();
