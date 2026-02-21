@@ -63,27 +63,54 @@ function atualizarInterface(data) {
 }
 
 // ===== SIMULAÇÃO =====
-if (MODO_SIMULACAO) {
+// ===== SIMULAÇÃO REALISTA =====
 
-  setInterval(() => {
+let nivel = 50;
+let bombaLigada = false;
 
-    let nivel = Math.random() * 100;
+function atualizarSistema() {
 
-    atualizarInterface({ nivel });
+  // Consumo da casa (sempre existe)
+  let consumo = Math.random() * 1.5;
 
-    grafico.data.labels.push(new Date().toLocaleTimeString());
-    grafico.data.datasets[0].data.push(nivel);
+  // Se bomba ligada, enche
+  if (bombaLigada) {
+    nivel += 2; // velocidade de enchimento
+    nivel -= consumo; // ainda existe consumo
+  } else {
+    nivel -= consumo;
+  }
 
-    if (grafico.data.labels.length > 20) {
-      grafico.data.labels.shift();
-      grafico.data.datasets[0].data.shift();
-    }
+  // Limites
+  if (nivel >= 100) {
+    nivel = 100;
+    bombaLigada = false;
+  }
 
-    grafico.update();
+  if (nivel <= 0) {
+    nivel = 0;
+  }
 
-  }, 3000);
+  // Liga bomba se estiver muito baixo
+  if (nivel <= 20) {
+    bombaLigada = true;
+  }
 
+  atualizarInterface({ nivel });
+
+  // Atualiza gráfico
+  grafico.data.labels.push(new Date().toLocaleTimeString());
+  grafico.data.datasets[0].data.push(nivel);
+
+  if (grafico.data.labels.length > 20) {
+    grafico.data.labels.shift();
+    grafico.data.datasets[0].data.shift();
+  }
+
+  grafico.update();
 }
+
+setInterval(atualizarSistema, 1000);
 
 // ===== FIREBASE (quando desativar simulação) =====
 if (!MODO_SIMULACAO) {
