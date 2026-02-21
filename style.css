@@ -31,11 +31,17 @@ body {
 
 .water {
   position: absolute;
-  bottom: 0;
-  width: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  
+  width: 85%;        /* largura interna da caixa */
+  bottom: 8%;        /* sobe a base da água */
   height: 0%;
+
+  max-height: 78%;   /* limita o topo da água */
+
   background: linear-gradient(to top, #0077ff, #00c6ff);
-  transition: height 1s ease;
+  transition: height 0.8s ease;
   overflow: hidden;
 }
 
