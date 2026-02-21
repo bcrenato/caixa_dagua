@@ -47,10 +47,10 @@ body {
 .wave {
   position: absolute;
   width: 200%;
-  height: 60px;
-  top: -30px;
-  border-radius: 40%;
-  background: rgba(255,255,255,0.3);
+  height: 35px;
+  top: -15px;
+  border-radius: 45%;
+  background: rgba(255,255,255,0.2);
   animation: wave 6s infinite linear;
 }
 
