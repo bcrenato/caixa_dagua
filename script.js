@@ -1,27 +1,26 @@
 // ===== CONFIGURAÇÃO =====
-const MODO_SIMULACAO = true; // coloque false quando usar Firebase
-
-// 🔥 IMPORTANTE: igual ao max-height do CSS (.water)
-const AREA_UTIL = 49;
+const MODO_SIMULACAO = true;
+const AREA_UTIL = 49; // igual ao max-height do CSS
 
 // ===== ELEMENTOS =====
 const water = document.getElementById("water");
 const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 
-let nivelAtual = 0;
-let nivelDestino = 0;
+// ===== CONTROLE DE NÍVEL =====
+let nivelAtual = 50;
+let nivelDestino = 50;
 
-// ===== ANIMAÇÃO SUAVE CORRIGIDA =====
+// ===== ANIMAÇÃO CONTÍNUA =====
 function animar() {
-  if (Math.abs(nivelAtual - nivelDestino) > 0.1) {
-    nivelAtual += (nivelDestino - nivelAtual) * 0.05;
 
-    // 🔥 Conversão proporcional correta
-    water.style.height = (nivelAtual * AREA_UTIL / 100) + "%";
+  // aproxima suavemente
+  nivelAtual += (nivelDestino - nivelAtual) * 0.1;
 
-    percent.innerText = nivelAtual.toFixed(1) + "%";
-  }
+  // conversão proporcional correta
+  water.style.height = (nivelAtual * AREA_UTIL / 100) + "%";
+
+  percent.innerText = nivelAtual.toFixed(1) + "%";
 
   requestAnimationFrame(animar);
 }
@@ -50,15 +49,15 @@ const grafico = new Chart(ctx, {
 });
 
 // ===== ATUALIZAÇÃO VISUAL =====
-function atualizarInterface(data) {
+function atualizarInterface(nivel) {
 
-  nivelDestino = data.nivel;
+  nivelDestino = nivel;
 
-  if (data.nivel <= 10) {
+  if (nivel <= 10) {
     water.style.background = "linear-gradient(to top,#ff0000,#ff4d4d)";
     statusText.innerText = "CRÍTICO";
   } 
-  else if (data.nivel <= 30) {
+  else if (nivel <= 30) {
     water.style.background = "linear-gradient(to top,#ff7b00,#ffc107)";
     statusText.innerText = "Baixo";
   } 
@@ -74,19 +73,17 @@ if (MODO_SIMULACAO) {
   let nivel = 50;
   let bombaLigada = false;
 
-  function atualizarSistema() {
+  setInterval(() => {
 
-    // Consumo da casa
     let consumo = Math.random() * 1.5;
 
     if (bombaLigada) {
-      nivel += 2;       // enchimento
-      nivel -= consumo; // consumo continua
+      nivel += 2;
+      nivel -= consumo;
     } else {
       nivel -= consumo;
     }
 
-    // Limites
     if (nivel >= 100) {
       nivel = 100;
       bombaLigada = false;
@@ -96,14 +93,13 @@ if (MODO_SIMULACAO) {
       nivel = 0;
     }
 
-    // Liga bomba se nível baixo
     if (nivel <= 20) {
       bombaLigada = true;
     }
 
-    atualizarInterface({ nivel });
+    atualizarInterface(nivel);
 
-    // Atualiza gráfico
+    // gráfico
     grafico.data.labels.push(new Date().toLocaleTimeString());
     grafico.data.datasets[0].data.push(nivel);
 
@@ -113,23 +109,6 @@ if (MODO_SIMULACAO) {
     }
 
     grafico.update();
-  }
 
-  setInterval(atualizarSistema, 1000);
-}
-
-// ===== FIREBASE =====
-if (!MODO_SIMULACAO) {
-
-  var firebaseConfig = {
-    apiKey: "SUA_API_KEY",
-    databaseURL: "SUA_DATABASE_URL"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  var database = firebase.database();
-
-  database.ref("caixa").on("value", function(snapshot) {
-    atualizarInterface(snapshot.val());
-  });
+  }, 1000);
 }
