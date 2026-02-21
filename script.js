@@ -1,3 +1,5 @@
+const alertaGrande = document.getElementById("alertaGrande");
+
 // ===== CONFIGURAÇÃO =====
 const MODO_SIMULACAO = true;
 const AREA_UTIL = 49; // igual ao max-height do CSS
@@ -64,14 +66,17 @@ function atualizarInterface(nivel) {
   if (nivel <= 10) {
     water.style.background = "linear-gradient(to top,#ff0000,#ff4d4d)";
     statusText.innerText = "CRÍTICO";
+    alertaGrande.style.display = "block";
   } 
   else if (nivel <= 30) {
     water.style.background = "linear-gradient(to top,#ff7b00,#ffc107)";
     statusText.innerText = "Baixo";
+    alertaGrande.style.display = "block";
   } 
   else {
     water.style.background = "linear-gradient(to top,#0077ff,#00c6ff)";
     statusText.innerText = "Normal";
+    alertaGrande.style.display = "none";
   }
 }
 
