@@ -121,7 +121,7 @@ if (MODO_SIMULACAO) {
       nivel = 0;
     }
 
-    if (nivel <= 20) {
+    if (nivel <= 2) {
       bombaLigada = true;
     }
 
