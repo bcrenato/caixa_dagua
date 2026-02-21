@@ -1,0 +1,88 @@
+#include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
+#include <PubSubClient.h>
+
+// --- WIFI ---
+const char* WIFI_SSID = "NOME_DA_SUA_REDE";
+const char* WIFI_PASSWORD = "SUA_SENHA";
+
+// --- FIREBASE (Dados do seu projeto) ---
+#define FIREBASE_HOST "monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com"
+#define FIREBASE_AUTH "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM" 
+
+// --- MQTT (Home Assistant) ---
+const char* MQTT_BROKER = "IP_DO_SEU_BROKER";
+const char* MQTT_TOPIC = "casa/caixa_agua/nivel";
+
+// --- PINOS SENSOR ---
+const int PIN_TRIG = D5;
+const int PIN_ECHO = D6;
+
+// --- MEDIDAS DA CAIXA (Ajuste aqui) ---
+const float ALTURA_CAIXA = 110.0;   // Sensor até o fundo (0%)
+const float DISTANCIA_CHEIA = 10.0;  // Sensor até o cano de cima (100%)
+
+FirebaseData firebaseData;
+FirebaseConfig config;
+FirebaseAuth auth;
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(PIN_TRIG, OUTPUT);
+  pinMode(PIN_ECHO, INPUT);
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+
+  config.host = FIREBASE_HOST;
+  config.signer.tokens.legacy_token = FIREBASE_AUTH;
+  Firebase.begin(&config, &auth);
+  
+  mqttClient.setServer(MQTT_BROKER, 1883);
+}
+
+float lerNivelEstavel() {
+  float soma = 0;
+  int leiturasValidas = 0;
+
+  for (int i = 0; i < 10; i++) {
+    digitalWrite(PIN_TRIG, LOW);
+    delayMicroseconds(2);
+    digitalWrite(PIN_TRIG, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(PIN_TRIG, LOW);
+
+    long duracao = pulseIn(PIN_ECHO, HIGH, 30000); // Timeout de 30ms
+    float distancia = duracao * 0.034 / 2;
+
+    if (distancia > 0) {
+      float p = (ALTURA_CAIXA - distancia) / (ALTURA_CAIXA - DISTANCIA_CHEIA) * 100;
+      if (p > 100) p = 100;
+      if (p < 0) p = 0;
+      soma += p;
+      leiturasValidas++;
+    }
+    delay(50);
+  }
+  return (leiturasValidas > 0) ? (soma / leiturasValidas) : 0;
+}
+
+void loop() {
+  if (!mqttClient.connected()) {
+    mqttClient.connect("ESP8266_Caixa");
+  }
+
+  float nivel = lerNivelEstavel();
+
+  // Envia para o Site via Firebase
+  Firebase.setFloat(firebaseData, "/nivel", nivel);
+
+  // Envia para o Home Assistant via MQTT
+  char msg[10];
+  dtostrf(nivel, 1, 1, msg);
+  mqttClient.publish(MQTT_TOPIC, msg);
+
+  delay(5000); // Atualiza a cada 5 segundos
+}
