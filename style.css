@@ -35,7 +35,7 @@ body {
   transform: translateX(-50%);
   
   width: 85%;        /* largura interna da caixa */
-  bottom: 8%;        /* sobe a base da água */
+  bottom: 13%;        /* sobe a base da água */
   height: 0%;
 
   max-height: 78%;   /* limita o topo da água */
