@@ -1,33 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<title>Monitor Caixa D’Água</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1 id="nivel">0%</h1>
+<div class="dashboard">
 
-<script>
+  <div class="card-tank">
+      <div class="tank">
+          <div class="water" id="water">
+              <div class="wave wave1"></div>
+              <div class="wave wave2"></div>
+          </div>
+          <img src="caixa.png" class="tank-img">
+          <div class="glass"></div>
+      </div>
+      <h1 id="percent">0%</h1>
+      <p id="status">Normal</p>
+  </div>
 
-// CONFIG FIREBASE
-var firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  databaseURL: "SUA_DATABASE_URL"
-};
+  <div class="card-chart">
+      <canvas id="grafico"></canvas>
+  </div>
 
-firebase.initializeApp(firebaseConfig);
+</div>
 
-var database = firebase.database();
-var ref = database.ref("nivel");
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-ref.on("value", function(snapshot) {
-  document.getElementById("nivel").innerText =
-      snapshot.val().toFixed(1) + "%";
-});
+<!-- Chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-</script>
+<script src="script.js"></script>
 
 </body>
 </html>
