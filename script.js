@@ -115,3 +115,6 @@ if (!MODO_SIMULACAO) {
     grafico.update();
   });
 }
+nivelDestino = 100;
+water.style.height = "100%";
+percent.innerText = "100%";
