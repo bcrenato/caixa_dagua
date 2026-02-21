@@ -34,14 +34,14 @@ body {
   left: 50%;
   transform: translateX(-50%);
   
-  width: 85%;        /* largura interna da caixa */
-  bottom: 13%;        /* sobe a base da água */
+  width: 85%;
+  bottom: 13%;
   height: 0%;
 
-  max-height: 49%;   /* limita o topo da água */
+  max-height: 49%;
 
   background: linear-gradient(to top, #0077ff, #00c6ff);
-  overflowd: hidden;
+  overflow: hidden; /* 🔥 corrigido */
 }
 
 .wave {
