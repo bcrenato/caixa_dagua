@@ -140,3 +140,17 @@ h1 {
   50% { opacity: 0.3; }
   100% { opacity: 1; }
 }
+
+/* Estilo para o texto de litros reais */
+#litrosText {
+  font-size: 24px;         /* Um pouco menor que a porcentagem para dar hierarquia */
+  margin: 0;               /* Remove espaços extras */
+  font-weight: bold;       /* Mantém o destaque visual */
+  opacity: 0.9;            /* Suaviza levemente a cor para não brigar com o 100% */
+  transition: color 0.3s;  /* Faz a transição de cor (azul/amarelo/vermelho) ser suave */
+}
+
+/* Ajuste no card-tank para acomodar o novo texto */
+.card-tank h1 {
+  margin-bottom: 5px;      /* Reduz o espaço abaixo da porcentagem */
+}
