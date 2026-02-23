@@ -1,4 +1,5 @@
 const alertaGrande = document.getElementById("alertaGrande");
+const litrosText = document.getElementById("litrosText");
 
 // ===== CONFIGURAÇÃO =====
 const MODO_SIMULACAO = false; 
@@ -64,11 +65,17 @@ const grafico = new Chart(ctx, {
 });
 
 // ===== LÓGICA DE ALERTAS E INTERFACE =====
-function atualizarInterface(nivel) {
+function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
+
+  // Atualiza o valor de litros no visor
+  if (litros !== undefined) {
+    litrosText.innerText = Math.round(litros) + " L";
+  }
 
   if (nivel <= 20) {
     water.style.background = "linear-gradient(to top,#ff0000,#ff4d4d)";
+    litrosText.style.color = "#ff4d4d";
     statusText.innerText = "CRÍTICO";
     alertaGrande.innerText = "⚠ LIGAR A BOMBA";
     alertaGrande.style.background = "rgba(255, 0, 0, 0.9)";
@@ -76,6 +83,7 @@ function atualizarInterface(nivel) {
   } 
   else if (nivel <= 25) {
     water.style.background = "linear-gradient(to top,#ff7b00,#ffc107)";
+    litrosText.style.color = "#ffc107";
     statusText.innerText = "Baixo";
     alertaGrande.innerText = "⚠ LIGAR A BOMBA";
     alertaGrande.style.background = "rgba(255, 120, 0, 0.9)";
@@ -83,6 +91,7 @@ function atualizarInterface(nivel) {
   } 
   else if (nivel >= 90) {
     water.style.background = "linear-gradient(to top,#0077ff,#00c6ff)";
+    litrosText.style.color = "#00c6ff";
     statusText.innerText = "Quase Cheio";
     alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
     alertaGrande.style.background = "rgba(0, 255, 150, 0.9)";
@@ -90,6 +99,7 @@ function atualizarInterface(nivel) {
   } 
   else {
     water.style.background = "linear-gradient(to top,#0077ff,#00c6ff)";
+    litrosText.style.color = "#00c6ff";
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
   }
@@ -106,10 +116,11 @@ function atualizarInterface(nivel) {
 
 // ===== ESCUTA O FIREBASE EM TEMPO REAL =====
 if (!MODO_SIMULACAO) {
-  database.ref('nivel').on('value', (snapshot) => {
+  database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data !== null) {
-      atualizarInterface(parseFloat(data));
+      // Passa nível e litros para a interface conforme enviado pelo NodeMCU
+      atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
     }
   });
 }
