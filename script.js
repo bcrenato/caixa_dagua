@@ -144,7 +144,7 @@ if (MODO_SIMULACAO) {
 
     // Atualiza a tela localmente
     atualizarInterface(simNivel, litrosSimulados);
-  }, 1000); // Atualiza a cada 3 segundos
+  }, 5000); // Atualiza a cada 3 segundos
 }
 
 // ===== ESCUTA O FIREBASE EM TEMPO REAL (MODO REAL) =====
