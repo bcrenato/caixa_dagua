@@ -2,8 +2,13 @@ const alertaGrande = document.getElementById("alertaGrande");
 const litrosText = document.getElementById("litrosText");
 
 // ===== CONFIGURAÇÃO =====
-const MODO_SIMULACAO = false; 
+const MODO_SIMULACAO = true; // Mude para false para ler do sensor real
 const AREA_UTIL = 49; 
+
+// Medidas da Caixa para Cálculo Real (Tronco de Cone)
+const R_BASE = 58.0;
+const R_TOPO = 75.5;
+const H_UTIL = 76.0;
 
 // CONFIGURAÇÕES DO SEU FIREBASE
 const firebaseConfig = {
@@ -68,7 +73,6 @@ const grafico = new Chart(ctx, {
 function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
 
-  // Atualiza o valor de litros no visor
   if (litros !== undefined) {
     litrosText.innerText = Math.round(litros) + " L";
   }
@@ -104,7 +108,6 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.style.display = "none";
   }
 
-  // Atualiza pontos do gráfico
   grafico.data.labels.push(new Date().toLocaleTimeString());
   grafico.data.datasets[0].data.push(nivel);
   if (grafico.data.labels.length > 20) {
@@ -114,12 +117,41 @@ function atualizarInterface(nivel, litros) {
   grafico.update('none');
 }
 
-// ===== ESCUTA O FIREBASE EM TEMPO REAL =====
+// ===== LÓGICA DE SIMULAÇÃO AUTOMÁTICA =====
+if (MODO_SIMULACAO) {
+  let subindo = true;
+  let simNivel = 50;
+
+  setInterval(() => {
+    // Varia o nível para simular enchimento/esvaziamento
+    if (subindo) simNivel += 1;
+    else simNivel -= 1;
+
+    if (simNivel >= 100) subindo = false;
+    if (simNivel <= 5) subindo = true;
+
+    // CÁLCULO DE TRONCO DE CONE (SIMULADO)
+    const h = (simNivel / 100) * H_UTIL;
+    const raioAt = R_BASE + (R_TOPO - R_BASE) * (h / H_UTIL);
+    const vol_cm3 = (3.14159 * h / 3.0) * (Math.pow(raioAt, 2) + (raioAt * R_BASE) + Math.pow(R_BASE, 2));
+    const litrosSimulados = vol_cm3 / 1000.0;
+
+    // Atualiza o Firebase automaticamente
+    database.ref('/').update({
+      nivel: simNivel,
+      litros: litrosSimulados
+    });
+
+    // Atualiza a tela localmente
+    atualizarInterface(simNivel, litrosSimulados);
+  }, 3000); // Atualiza a cada 3 segundos
+}
+
+// ===== ESCUTA O FIREBASE EM TEMPO REAL (MODO REAL) =====
 if (!MODO_SIMULACAO) {
   database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data !== null) {
-      // Passa nível e litros para a interface conforme enviado pelo NodeMCU
       atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
     }
   });
