@@ -2,7 +2,7 @@ const alertaGrande = document.getElementById("alertaGrande");
 const litrosText = document.getElementById("litrosText");
 
 // ===== CONFIGURAÇÃO =====
-const MODO_SIMULACAO = true; // Mude para false para ler do sensor real
+const MODO_SIMULACAO = false; // Mude para false para ler do sensor real
 const AREA_UTIL = 49; 
 
 // Medidas da Caixa para Cálculo Real (Tronco de Cone)
