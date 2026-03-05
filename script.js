@@ -124,8 +124,8 @@ if (MODO_SIMULACAO) {
 
   setInterval(() => {
     // Varia o nível para simular enchimento/esvaziamento
-    if (subindo) simNivel += 1;
-    else simNivel -= 1;
+    if (subindo) simNivel += 0.5;
+    else simNivel -= 0.5;
 
     if (simNivel >= 100) subindo = false;
     if (simNivel <= 5) subindo = true;
