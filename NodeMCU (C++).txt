@@ -1,88 +1,190 @@
 #include <ESP8266WiFi.h>
 #include <FirebaseESP8266.h>
 #include <PubSubClient.h>
+#include <Ticker.h>
+#include <math.h>
 
-// --- WIFI ---
-const char* WIFI_SSID = "NOME_DA_SUA_REDE";
+// ---------- WIFI ----------
+const char* WIFI_SSID = "SUA_REDE";
 const char* WIFI_PASSWORD = "SUA_SENHA";
 
-// --- FIREBASE (Dados do seu projeto) ---
+// ---------- FIREBASE ----------
 #define FIREBASE_HOST "monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com"
-#define FIREBASE_AUTH "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM" 
+#define FIREBASE_AUTH "SUA_API_KEY"
 
-// --- MQTT (Home Assistant) ---
-const char* MQTT_BROKER = "IP_DO_SEU_BROKER";
-const char* MQTT_TOPIC = "casa/caixa_agua/nivel";
+// ---------- MQTT ----------
+const char* MQTT_BROKER = "192.168.1.10";
+const int   MQTT_PORT   = 1883;
+const char* MQTT_TOPIC  = "casa/caixa_agua/dados";
 
-// --- PINOS SENSOR ---
-const int PIN_TRIG = D5;
-const int PIN_ECHO = D6;
+// ---------- PINOS ----------
+#define PIN_TRIG D5
+#define PIN_ECHO D6
+#define PIN_RELE D1
 
-// --- MEDIDAS DA CAIXA (Ajuste aqui) ---
-const float ALTURA_CAIXA = 110.0;   // Sensor até o fundo (0%)
-const float DISTANCIA_CHEIA = 10.0;  // Sensor até o cano de cima (100%)
+// ---------- MEDIDAS DA CAIXA ----------
+const float ALTURA_CAIXA = 76.0;
+const float DISTANCIA_CHEIA = 10.0;
+const float RAIO_BASE = 58.0;
+const float RAIO_TOPO = 75.5;
 
+// ---------- CONTROLE BOMBA ----------
+const float NIVEL_LIGA  = 20.0;
+const float NIVEL_DESLIGA = 90.0;
+
+bool bombaLigada = false;
+
+// ---------- OBJETOS ----------
 FirebaseData firebaseData;
 FirebaseConfig config;
 FirebaseAuth auth;
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
+Ticker watchdog;
 
-void setup() {
-  Serial.begin(115200);
-  pinMode(PIN_TRIG, OUTPUT);
-  pinMode(PIN_ECHO, INPUT);
-
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
-
-  config.host = FIREBASE_HOST;
-  config.signer.tokens.legacy_token = FIREBASE_AUTH;
-  Firebase.begin(&config, &auth);
-  
-  mqttClient.setServer(MQTT_BROKER, 1883);
+// ---------- WATCHDOG ----------
+void reiniciar() {
+  ESP.restart();
 }
 
-float lerNivelEstavel() {
-  float soma = 0;
-  int leiturasValidas = 0;
+// ---------- WIFI ----------
+void conectarWiFi() {
+  if (WiFi.status() == WL_CONNECTED) return;
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  unsigned long inicio = millis();
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    if (millis() - inicio > 20000) ESP.restart();
+  }
+}
+
+// ---------- MQTT ----------
+void reconnectMQTT() {
+  while (!mqttClient.connected()) {
+    mqttClient.connect("ESP8266_Caixa");
+    delay(2000);
+  }
+}
+
+// ---------- SENSOR COM FILTRO ----------
+float lerNivelFiltrado() {
+
+  float leituras[10];
+  int validas = 0;
 
   for (int i = 0; i < 10; i++) {
+
     digitalWrite(PIN_TRIG, LOW);
     delayMicroseconds(2);
     digitalWrite(PIN_TRIG, HIGH);
     delayMicroseconds(10);
     digitalWrite(PIN_TRIG, LOW);
 
-    long duracao = pulseIn(PIN_ECHO, HIGH, 30000); // Timeout de 30ms
-    float distancia = duracao * 0.034 / 2;
+    long duracao = pulseIn(PIN_ECHO, HIGH, 30000);
+    float distancia = duracao * 0.034 / 2.0;
 
-    if (distancia > 0) {
-      float p = (ALTURA_CAIXA - distancia) / (ALTURA_CAIXA - DISTANCIA_CHEIA) * 100;
-      if (p > 100) p = 100;
-      if (p < 0) p = 0;
-      soma += p;
-      leiturasValidas++;
+    if (distancia > 5 && distancia < ALTURA_CAIXA + 30) {
+      leituras[validas++] = distancia;
     }
-    delay(50);
+
+    delay(60);
   }
-  return (leiturasValidas > 0) ? (soma / leiturasValidas) : 0;
+
+  if (validas < 3) return 0;
+
+  // Média simples
+  float soma = 0;
+  for (int i = 0; i < validas; i++) soma += leituras[i];
+  float distanciaMedia = soma / validas;
+
+  float nivel_cm = ALTURA_CAIXA - (distanciaMedia - DISTANCIA_CHEIA);
+
+  if (nivel_cm < 0) nivel_cm = 0;
+  if (nivel_cm > ALTURA_CAIXA) nivel_cm = ALTURA_CAIXA;
+
+  return nivel_cm;
 }
 
-void loop() {
-  if (!mqttClient.connected()) {
-    mqttClient.connect("ESP8266_Caixa");
+// ---------- CONTROLE BOMBA ----------
+void controlarBomba(float nivel_percent) {
+
+  if (!bombaLigada && nivel_percent <= NIVEL_LIGA) {
+    digitalWrite(PIN_RELE, LOW);
+    bombaLigada = true;
   }
 
-  float nivel = lerNivelEstavel();
+  if (bombaLigada && nivel_percent >= NIVEL_DESLIGA) {
+    digitalWrite(PIN_RELE, HIGH);
+    bombaLigada = false;
+  }
+}
 
-  // Envia para o Site via Firebase
-  Firebase.setFloat(firebaseData, "/nivel", nivel);
+// ---------- SETUP ----------
+void setup() {
 
-  // Envia para o Home Assistant via MQTT
-  char msg[10];
-  dtostrf(nivel, 1, 1, msg);
-  mqttClient.publish(MQTT_TOPIC, msg);
+  Serial.begin(115200);
 
-  delay(5000); // Atualiza a cada 5 segundos
+  pinMode(PIN_TRIG, OUTPUT);
+  pinMode(PIN_ECHO, INPUT);
+  pinMode(PIN_RELE, OUTPUT);
+  digitalWrite(PIN_RELE, HIGH);
+
+  conectarWiFi();
+
+  config.host = FIREBASE_HOST;
+  config.signer.tokens.legacy_token = FIREBASE_AUTH;
+  Firebase.begin(&config, &auth);
+
+  mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
+
+  watchdog.attach(120, reiniciar);
+}
+
+// ---------- LOOP ----------
+void loop() {
+
+  watchdog.detach();
+  watchdog.attach(120, reiniciar);
+
+  conectarWiFi();
+  if (!mqttClient.connected()) reconnectMQTT();
+  mqttClient.loop();
+
+  float nivel_cm = lerNivelFiltrado();
+  float nivel_percent = (nivel_cm / ALTURA_CAIXA) * 100.0;
+
+  // -------- TRONCO DE CONE --------
+  float raioAtual = RAIO_BASE +
+                    (RAIO_TOPO - RAIO_BASE) *
+                    (nivel_cm / ALTURA_CAIXA);
+
+  float volume_cm3 =
+      (3.14159 * nivel_cm / 3.0) *
+      (pow(raioAtual,2) +
+       (raioAtual * RAIO_BASE) +
+       pow(RAIO_BASE,2));
+
+  float litros = volume_cm3 / 1000.0;
+
+  controlarBomba(nivel_percent);
+
+  // -------- FIREBASE --------
+  Firebase.setFloat(firebaseData, "/nivel", nivel_percent);
+  Firebase.setFloat(firebaseData, "/litros", litros);
+  Firebase.setBool(firebaseData, "/bomba", bombaLigada);
+
+  // -------- MQTT --------
+  String payload = "{";
+  payload += "\"nivel\":" + String(nivel_percent,1) + ",";
+  payload += "\"litros\":" + String(litros,0) + ",";
+  payload += "\"bomba\":" + String(bombaLigada ? "true" : "false");
+  payload += "}";
+
+  mqttClient.publish(MQTT_TOPIC, payload.c_str());
+
+  Serial.println(payload);
+
+  delay(5000);
 }
