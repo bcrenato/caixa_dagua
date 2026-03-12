@@ -1,4 +1,4 @@
-// CONFIGURAÇÕES DO FIREBASE (Sincronizado com seu index.html)
+// CONFIGURAÇÕES DO FIREBASE (Sincronizado com seu projeto)
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
   authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
@@ -9,7 +9,7 @@ const firebaseConfig = {
   appId: "1:176234978770:web:e193d8242f4f111abd3c0b"
 };
 
-// Inicializa o Firebase se ainda não foi inicializado
+// Inicializa o Firebase
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -20,7 +20,7 @@ let medindo = false;
 let litrosNoInicio = 0;
 let litrosAtuaisDoSensor = 0;
 
-// 1. ESCUTA OS LITROS REAIS VINDOS DO ARDUINO (A cada 500ms)
+// 1. ESCUTA O VALOR ATUAL DE LITROS DO SENSOR
 database.ref('litros').on('value', (snapshot) => {
     litrosAtuaisDoSensor = parseFloat(snapshot.val()) || 0;
 });
@@ -33,31 +33,33 @@ function toggleMedicao() {
     const localSelect = document.getElementById("dispositivoGasto");
 
     if (!medindo) {
-        // Agora o nome é opcional se for Máquina OU Torneira
+        // Validação: Nome opcional para Máquina e Torneira
         const local = localSelect.value;
         const precisaNome = (local !== "Máquina de Lavar" && local !== "Torneira Geral");
 
         if (precisaNome && !nomeInput.value.trim()) {
-            alert("Por favor, digite o nome de quem vai usar!");
+            alert("Por favor, digite o nome de quem vai usar o chuveiro!");
             return;
         }
 
         medindo = true;
-        litrosNoInicio = litrosAtuaisDoSensor; 
+        litrosNoInicio = litrosAtuaisDoSensor; // Grava volume inicial
         btn.innerText = "FINALIZAR E REGISTRAR";
         btn.style.background = "#ef4444";
         display.innerText = "Medindo...";
+        display.style.color = "#ffc107";
     } else {
         medindo = false;
-        let gastoTotal = Math.max(0, litrosNoInicio - litrosAtuaisDoSensor); 
+        let gastoTotal = Math.max(0, litrosNoInicio - litrosAtuaisDoSensor); // Diferença de nível
         
-        // Identificador inteligente: Nome da pessoa ou o Nome do Local
+        // Identificador: Usa o nome digitado ou o nome do dispositivo selecionado
         let identificador = nomeInput.value.trim() || localSelect.value;
 
         btn.innerText = "INICIAR MEDIÇÃO";
         btn.style.background = "#22c55e";
         display.innerText = gastoTotal.toFixed(1) + " L";
 
+        // Salva o registro completo com data e hora
         const agora = new Date();
         database.ref('historico_gasto').push({
             pessoa: identificador,
@@ -67,10 +69,9 @@ function toggleMedicao() {
             data: agora.toLocaleDateString('pt-BR')
         });
         
-        nomeInput.value = ""; 
+        nomeInput.value = ""; // Limpa campo de texto
     }
 }
-
 
 // 3. ATUALIZAÇÃO DO RANKING E TABELA EM TEMPO REAL
 database.ref('historico_gasto').on('value', (snapshot) => {
@@ -79,7 +80,7 @@ database.ref('historico_gasto').on('value', (snapshot) => {
     const rankingDiv = document.getElementById("rankingConsumo");
 
     if (!dataSnap) {
-        corpoTabela.innerHTML = "<tr><td colspan='3'>Sem registros</td></tr>";
+        corpoTabela.innerHTML = "<tr><td colspan='3' style='padding:20px;'>Sem registros recentes</td></tr>";
         return;
     }
 
@@ -88,21 +89,20 @@ database.ref('historico_gasto').on('value', (snapshot) => {
     corpoTabela.innerHTML = "";
     rankingDiv.innerHTML = "";
 
-    // Processa a Tabela e os Totais para o Ranking
     registros.forEach((item, index) => {
-        // Acumula para o Ranking
+        // Soma para o Ranking Acumulado
         totais[item.pessoa] = (totais[item.pessoa] || 0) + parseFloat(item.gasto);
         
-        // Adiciona na Tabela (Apenas os últimos 10 registros para não pesar)
+        // Alimenta a Tabela de Histórico (últimos 10 registros)
         if(index < 10) {
-            const corGasto = parseFloat(item.gasto) > 60 ? "#ff4d4d" : "#ffc107";
+            const corGasto = parseFloat(item.gasto) > 60 ? "#ff4d4d" : "#ffc107"; // Alerta vermelho acima de 60L
             corpoTabela.innerHTML += `
                 <tr style="border-bottom: 1px solid #334155;">
                     <td style="padding:10px; text-align:left;">
-                        <b>${item.pessoa}</b><br>
+                        <b style="font-size:15px;">${item.pessoa}</b><br>
                         <small style="color: #94a3b8;">${item.dispositivo}</small>
                     </td>
-                    <td style="color:${corGasto}; font-weight:bold;">${item.gasto}L</td>
+                    <td style="color:${corGasto}; font-weight:bold; font-size:16px;">${item.gasto}L</td>
                     <td style="text-align:right; font-size:11px; color:#94a3b8;">
                         ${item.data}<br>${item.hora}
                     </td>
@@ -110,18 +110,18 @@ database.ref('historico_gasto').on('value', (snapshot) => {
         }
     });
 
-    // 4. DESENHA O RANKING VISUAL
+    // 4. GERAÇÃO DO RANKING VISUAL
     const rankingOrdenado = Object.entries(totais).sort((a,b) => b[1] - a[1]);
     const maxVal = rankingOrdenado[0][1];
 
     rankingOrdenado.forEach(([nome, total]) => {
         const percentual = (total / maxVal) * 100;
-        const corBarra = total > 150 ? "#ef4444" : "#22c55e"; // Alerta vermelho se passar de 150L total
+        const corBarra = total > 200 ? "#ef4444" : "#22c55e"; // Alerta vermelho acima de 200L total
         
         rankingDiv.innerHTML += `
             <div style="margin-bottom: 12px;">
                 <div style="display:flex; justify-content:space-between; font-size: 14px;">
-                    <span>${nome}</span>
+                    <span><b>${nome}</b></span>
                     <b style="color: ${corBarra}">${total.toFixed(1)}L</b>
                 </div>
                 <div style="width: 100%; background: #334155; height: 10px; border-radius: 5px; margin-top: 4px;">
