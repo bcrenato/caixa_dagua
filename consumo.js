@@ -30,10 +30,11 @@ database.ref('litros').on('value', (snapshot) => {
         
         // Se passar de 60L, adiciona a classe que faz piscar
         if (gastoParcial > 60) {
+            display.style.color = ""; // Limpa a cor manual para deixar o CSS agir
             display.classList.add("piscar-alerta");
         } else {
             display.classList.remove("piscar-alerta");
-            display.style.color = "#ffc107";
+            display.style.color = "#ffc107"; // Volta para o amarelo padrão
         }
     }
 });
