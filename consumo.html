@@ -1,171 +1,87 @@
-// CONFIGURAÇÕES DO FIREBASE
-const firebaseConfig = {
-  apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
-  authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
-  databaseURL: "https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com",
-  projectId: "monitor-caixa-agua-ff63a",
-  storageBucket: "monitor-caixa-agua-ff63a.firebasestorage.app",
-  messagingSenderId: "176234978770",
-  appId: "1:176234978770:web:e193d8242f4f111abd3c0b"
-};
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Consumo - Caixa D’Água</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .container-consumo { width: 95%; max-width: 500px; margin: 20px auto; }
+        .card-gasto { background: #1e293b; padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        input, select { padding: 12px; border-radius: 8px; width: 90%; margin-bottom: 12px; background: #0f172a; color: white; border: 1px solid #475569; font-size: 16px; }
+        .btn-medir { padding: 15px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; width: 95%; font-size: 16px; transition: 0.3s; }
+        .ranking-bar { margin-bottom: 15px; text-align: left; }
+        .bar-bg { width: 100%; background: #334155; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 5px; }
+        .bar-fill { height: 100%; transition: width 0.6s ease-out; }
 
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-
-let medindo = false;
-let litrosNoInicio = 0;
-let litrosAtuaisDoSensor = 0;
-
-// 1. ESCUTA SENSOR
-database.ref('litros').on('value', (snapshot) => {
-    litrosAtuaisDoSensor = parseFloat(snapshot.val()) || 0;
-    if (medindo) {
-        const display = document.getElementById("displayConsumo");
-        let gastoParcial = Math.max(0, litrosNoInicio - litrosAtuaisDoSensor);
-        display.innerText = gastoParcial.toFixed(1) + " L";
-        if (gastoParcial > 60) {
-            display.style.color = ""; 
-            display.classList.add("piscar-alerta");
-        } else {
-            display.classList.remove("piscar-alerta");
-            display.style.color = "#ffc107";
+        @keyframes pulsarRed {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
         }
-    }
-});
 
-// 2. MEDIÇÃO
-function toggleMedicao() {
-    const btn = document.getElementById("btnMedir");
-    const display = document.getElementById("displayConsumo");
-    const nomeInput = document.getElementById("nomePessoa");
-    const localSelect = document.getElementById("dispositivoGasto");
-
-    if (!medindo) {
-        const precisaNome = (localSelect.value !== "Máquina de Lavar" && localSelect.value !== "Torneira Geral");
-        if (precisaNome && !nomeInput.value.trim()) {
-            alert("Por favor, digite o nome!"); return;
+        .piscar-alerta {
+            animation: pulsarRed 0.8s infinite !important;
+            color: #ff4d4d !important;
+            text-shadow: 0 0 10px rgba(255, 77, 77, 0.5) !important;
+            display: inline-block !important;
         }
-        medindo = true;
-        litrosNoInicio = litrosAtuaisDoSensor;
-        btn.innerText = "FINALIZAR E SALVAR";
-        btn.style.background = "#ef4444";
-        display.innerText = "0.0 L";
-    } else {
-        medindo = false;
-        let gastoFinal = Math.max(0, litrosNoInicio - litrosAtuaisDoSensor);
-        let identificador = nomeInput.value.trim() || localSelect.value;
 
-        database.ref('historico_gasto').push({
-            pessoa: identificador,
-            dispositivo: localSelect.value,
-            gasto: gastoFinal.toFixed(1),
-            hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
-            data: new Date().toLocaleDateString('pt-BR')
-        });
+        .btn-danger { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+        .btn-delete-item { background: none; border: none; color: #ef4444; cursor: pointer; font-weight: bold; font-size: 16px; padding: 0 5px; }
         
-        btn.innerText = "INICIAR MEDIÇÃO";
-        btn.style.background = "#22c55e";
-        nomeInput.value = "";
-    }
-}
+        /* Estilo do Filtro de Data */
+        .filtro-data { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #3b82f6; }
+        .filtro-data label { display: block; margin-bottom: 5px; font-size: 14px; color: #94a3b8; }
+    </style>
+</head>
+<body>
 
-// 3. ATUALIZAÇÃO DA INTERFACE (RANKING E TABELA)
-function atualizarInterface() {
-    database.ref('historico_gasto').once('value', (snapshot) => {
-        const dataSnap = snapshot.val();
-        const corpoTabela = document.getElementById("corpoTabela");
-        const rankingDiv = document.getElementById("rankingConsumo");
-        const filtroData = document.getElementById("filtroCalendario").value;
-        const tituloRanking = document.getElementById("tituloRanking");
+<div class="container-consumo">
+    <div class="titulo-box">
+        <h2 class="titulo-principal">GESTÃO DE ÁGUA</h2>
+        <p class="subtitulo">Controle de Gastos Individuais</p>
+    </div>
 
-        if (!dataSnap) {
-            corpoTabela.innerHTML = "<tr><td>Sem registros</td></tr>";
-            rankingDiv.innerHTML = ""; return;
-        }
+    <div class="card-gasto">
+        <h3>Nova Medição</h3>
+        <input type="text" id="nomePessoa" placeholder="Nome da Pessoa">
+        <select id="dispositivoGasto" onchange="verificarDispositivo()">
+            <option value="Chuveiro Suíte">Chuveiro Suíte</option>
+            <option value="Chuveiro Geral">Chuveiro Geral</option>
+            <option value="Máquina de Lavar">Máquina de Lavar</option>
+            <option value="Torneira Geral">Torneira Geral</option>
+        </select>
+        <div id="displayConsumo" style="font-size: 32px; font-weight: bold; color: #ffc107; margin: 15px 0;">0.0 L</div>
+        <button id="btnMedir" onclick="toggleMedicao()" class="btn-medir" style="background: #22c55e; color: white;">INICIAR MEDIÇÃO</button>
+    </div>
 
-        const registrosEntries = Object.entries(dataSnap).reverse();
-        const totais = {};
-        corpoTabela.innerHTML = "";
-        rankingDiv.innerHTML = "";
+    <div class="filtro-data">
+        <label>🔍 Filtrar Ranking por Data:</label>
+        <input type="date" id="filtroCalendario" onchange="atualizarInterface()">
+        <button onclick="limparFiltroData()" style="background: #475569; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; width: 100%;">Mostrar Tudo (Ranking Semanal)</button>
+    </div>
 
-        // Formata a data do calendário para comparar (YYYY-MM-DD -> DD/MM/YYYY)
-        let dataFiltroFormatada = "";
-        if (filtroData) {
-            const partes = filtroData.split('-');
-            dataFiltroFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
-            tituloRanking.innerText = `📅 Ranking ${dataFiltroFormatada}`;
-        } else {
-            tituloRanking.innerText = `🏆 Ranking Semanal`;
-        }
+    <div class="card-gasto">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 id="tituloRanking" style="color: #00c6ff; margin: 0;">🏆 Ranking Semanal</h3>
+            <button class="btn-danger" onclick="limparHistoricoTotal()">Zerar Mês</button>
+        </div>
+        <div id="rankingConsumo"></div>
+    </div>
 
-        const umaSemanaAtras = new Date();
-        umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
+    <div class="card-gasto">
+        <h3>Histórico Recente</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tbody id="corpoTabela"></tbody>
+        </table>
+    </div>
 
-        registrosEntries.forEach(([key, item], index) => {
-            const dPartes = item.data.split('/');
-            const dReg = new Date(dPartes[2], dPartes[1]-1, dPartes[0]);
+    <button class="btn-medir" style="background: #475569; color: white; margin-top: 10px;" onclick="window.location.href='index.html'">VOLTAR AO MONITOR</button>
+</div>
 
-            // LÓGICA DO FILTRO: Se calendário estiver vazio, usa 7 dias. Se não, usa o dia escolhido.
-            let deveIncluirNoRanking = false;
-            if (filtroData) {
-                if (item.data === dataFiltroFormatada) deveIncluirNoRanking = true;
-            } else {
-                if (dReg >= umaSemanaAtras) deveIncluirNoRanking = true;
-            }
-
-            if (deveIncluirNoRanking) {
-                totais[item.pessoa] = (totais[item.pessoa] || 0) + parseFloat(item.gasto);
-            }
-
-            // Histórico sempre mostra os últimos 10
-            if(index < 10) {
-                const cor = parseFloat(item.gasto) > 60 ? "#ff4d4d" : "#ffc107";
-                corpoTabela.innerHTML += `
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td style="padding:10px; text-align:left;"><b>${item.pessoa}</b><br><small>${item.dispositivo}</small></td>
-                        <td style="color:${cor}; font-weight:bold;">${item.gasto}L</td>
-                        <td style="text-align:right; font-size:11px; color:#94a3b8;">
-                            ${item.data}<br>${item.hora} <button class="btn-delete-item" onclick="excluirItem('${key}')">✖</button>
-                        </td>
-                    </tr>`;
-            }
-        });
-
-        // Desenha Ranking
-        const ordenado = Object.entries(totais).sort((a,b) => b[1]-a[1]);
-        if (ordenado.length > 0) {
-            const max = ordenado[0][1];
-            ordenado.forEach(([nome, total]) => {
-                const perc = (total / max) * 100;
-                let corBarra = total > 150 ? (total > 250 ? "#ef4444" : "#f59e0b") : "#22c55e";
-                rankingDiv.innerHTML += `
-                    <div class="ranking-bar">
-                        <div style="display:flex; justify-content:space-between; font-size:13px;"><span>${nome}</span><b>${total.toFixed(1)}L</b></div>
-                        <div class="bar-bg"><div class="bar-fill" style="width:${perc}%; background:${corBarra};"></div></div>
-                    </div>`;
-            });
-        }
-    });
-}
-
-// Inicia a escuta contínua
-database.ref('historico_gasto').on('value', atualizarInterface);
-
-function limparFiltroData() {
-    document.getElementById("filtroCalendario").value = "";
-    atualizarInterface();
-}
-
-function excluirItem(id) {
-    if(confirm("Excluir este gasto?")) database.ref('historico_gasto/' + id).remove();
-}
-
-function limparHistoricoTotal() {
-    if(confirm("⚠️ Isso zerará TODO o histórico. Confirmar?")) database.ref('historico_gasto').remove();
-}
-
-function verificarDispositivo() {
-    const local = document.getElementById("dispositivoGasto").value;
-    const nome = document.getElementById("nomePessoa");
-    nome.placeholder = (local === "Máquina de Lavar" || local === "Torneira Geral") ? "Opcional" : "Nome da Pessoa";
-}
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="consumo.js"></script>
+</body>
+</html>
