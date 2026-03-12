@@ -24,17 +24,20 @@
     </div>
 
     <div class="card-gasto">
-        <h3>Nova Medição</h3>
-        <input type="text" id="nomePessoa" placeholder="Nome da Pessoa">
-        <select id="dispositivoGasto">
-            <option value="Chuveiro Suíte">Chuveiro Suíte</option>
-            <option value="Chuveiro Geral">Chuveiro Geral</option>
-            <option value="Máquina de Lavar">Máquina de Lavar</option>
-            <option value="Torneira Geral">Torneira Geral</option>
-        </select>
-        <div id="displayConsumo" style="font-size: 32px; font-weight: bold; color: #ffc107; margin: 15px 0;">0.0 L</div>
-        <button id="btnMedir" onclick="toggleMedicao()" class="btn-medir" style="background: #22c55e; color: white;">INICIAR MEDIÇÃO</button>
-    </div>
+    <h3>Nova Medição</h3>
+    <input type="text" id="nomePessoa" placeholder="Nome da Pessoa (Opcional p/ Máquina)">
+    
+    <select id="dispositivoGasto" onchange="verificarDispositivo()">
+        <option value="Chuveiro Suíte">Chuveiro Suíte</option>
+        <option value="Chuveiro Geral">Chuveiro Geral</option>
+        <option value="Máquina de Lavar">Máquina de Lavar</option>
+        <option value="Torneira Geral">Torneira Geral</option>
+    </select>
+    
+    <div id="displayConsumo" style="font-size: 32px; font-weight: bold; color: #ffc107; margin: 15px 0;">0.0 L</div>
+    <button id="btnMedir" onclick="toggleMedicao()" class="btn-medir" style="background: #22c55e; color: white;">INICIAR MEDIÇÃO</button>
+</div>
+
 
     <div class="card-gasto">
         <h3 style="color: #00c6ff;">🏆 Ranking de Consumo</h3>
