@@ -33,8 +33,8 @@ const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 
 // ===== CONTROLE DE NÍVEL =====
-let nivelAtual = 50;
-let nivelDestino = 50;
+let nivelAtual = 0;
+let nivelDestino = 0;
 
 // ===== ANIMAÇÃO DA ÁGUA =====
 function animar() {
@@ -149,6 +149,18 @@ if (MODO_SIMULACAO) {
 
 // ===== ESCUTA O FIREBASE EM TEMPO REAL (MODO REAL) =====
 if (!MODO_SIMULACAO) {
+  // 1. Faz uma leitura instantânea assim que abre o site
+  database.ref('/').once('value').then((snapshot) => {
+    const data = snapshot.val();
+    if (data !== null) {
+      // Sincroniza os valores iniciais imediatamente
+      nivelAtual = parseFloat(data.nivel);
+      nivelDestino = parseFloat(data.nivel);
+      atualizarInterface(nivelDestino, parseFloat(data.litros));
+    }
+  });
+
+  // 2. Mantém a escuta para mudanças futuras (tempo real)
   database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data !== null) {
