@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações - Monitor</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .config-container { background: #1e293b; padding: 25px; border-radius: 20px; max-width: 400px; margin: 40px auto; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .val-bruto { font-size: 32px; color: #00c6ff; margin: 10px 0; font-weight: bold; }
+        .setup-group { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        input { width: 80%; padding: 10px; margin: 10px 0; border-radius: 8px; border: none; text-align: center; font-size: 16px; }
+        button { width: 90%; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; margin: 5px 0; transition: 0.3s; }
+        .btn-cap { background: #334155; color: white; }
+        .btn-save { background: #22c55e; color: white; margin-top: 15px; }
+        .btn-back { background: #ef4444; color: white; }
+    </style>
+</head>
+<body>
+    <div class="config-container">
+        <h2>CALIBRAÇÃO</h2>
+        <p>Valor vindo do Sensor (A0):</p>
+        <div class="val-bruto" id="displayBruto">---</div>
+
+        <div class="setup-group">
+            <label>VALOR CAIXA VAZIA</label>
+            <input type="number" id="inputMin" placeholder="Ex: 100">
+            <button class="btn-cap" onclick="capturar('min')">Capturar Atual como Vazio</button>
+        </div>
+
+        <div class="setup-group">
+            <label>VALOR CAIXA CHEIA</label>
+            <input type="number" id="inputMax" placeholder="Ex: 950">
+            <button class="btn-cap" onclick="capturar('max')">Capturar Atual como Cheio</button>
+        </div>
+
+        <button class="btn-save" onclick="salvar()">SALVAR CONFIGURAÇÃO</button>
+        <button class="btn-back" onclick="window.location.href='index.html'">VOLTAR</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
+            authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
+            databaseURL: "https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com",
+            projectId: "monitor-caixa-agua-ff63a"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let valorRaw = 0;
+
+        db.ref('valor_bruto').on('value', (s) => {
+            valorRaw = s.val();
+            document.getElementById('displayBruto').innerText = valorRaw;
+        });
+
+        function capturar(t) {
+            document.getElementById(t === 'min' ? 'inputMin' : 'inputMax').value = valorRaw;
+        }
+
+        function salvar() {
+            const vMin = document.getElementById('inputMin').value;
+            const vMax = document.getElementById('inputMax').value;
+            db.ref('config').set({ minimo: parseFloat(vMin), maximo: parseFloat(vMax) })
+              .then(() => alert("Calibrado com sucesso!"));
+        }
+    </script>
+</body>
+</html>
