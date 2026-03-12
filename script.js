@@ -33,8 +33,8 @@ const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 
 // ===== CONTROLE DE NÍVEL =====
-let nivelAtual = 0;
-let nivelDestino = 0;
+let nivelAtual = 50;
+let nivelDestino = 50;
 
 // ===== ANIMAÇÃO DA ÁGUA =====
 function animar() {
