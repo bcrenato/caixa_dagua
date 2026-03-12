@@ -6,87 +6,30 @@
     <title>Gestão de Consumo - Caixa D’Água</title>
     <link rel="stylesheet" href="style.css">
     <style>
-    .container-consumo { 
-        width: 95%; 
-        max-width: 500px; 
-        margin: 20px auto; 
-    }
-    
-    .card-gasto { 
-        background: #1e293b; 
-        padding: 20px; 
-        border-radius: 20px; 
-        text-align: center; 
-        margin-bottom: 20px; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
-    }
-    
-    input, select { 
-        padding: 12px; 
-        border-radius: 8px; 
-        width: 90%; 
-        margin-bottom: 12px; 
-        background: #0f172a; 
-        color: white; 
-        border: 1px solid #475569; 
-        font-size: 16px; 
-    }
-    
-    .btn-medir { 
-        padding: 15px; 
-        border-radius: 12px; 
-        border: none; 
-        font-weight: bold; 
-        cursor: pointer; 
-        width: 95%; 
-        font-size: 16px; 
-        transition: 0.3s; 
-    }
-    
-    .ranking-bar { 
-        margin-bottom: 15px; 
-        text-align: left; 
-    }
-    
-    .bar-bg { 
-        width: 100%; 
-        background: #334155; 
-        height: 12px; 
-        border-radius: 6px; 
-        overflow: hidden; 
-        margin-top: 5px; 
-    }
-    
-    .bar-fill { 
-        height: 100%; 
-        transition: width 0.6s ease-out; 
-    }
+        .container-consumo { width: 95%; max-width: 500px; margin: 20px auto; }
+        .card-gasto { background: #1e293b; padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        input, select { padding: 12px; border-radius: 8px; width: 90%; margin-bottom: 12px; background: #0f172a; color: white; border: 1px solid #475569; font-size: 16px; }
+        .btn-medir { padding: 15px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; width: 95%; font-size: 16px; transition: 0.3s; }
+        .ranking-bar { margin-bottom: 15px; text-align: left; }
+        .bar-bg { width: 100%; background: #334155; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 5px; }
+        .bar-fill { height: 100%; transition: width 0.6s ease-out; }
 
-    /* Animação de Pulsar */
-    @keyframes pulsarRed {
-        0% { 
-            opacity: 1; 
-            transform: scale(1); 
+        @keyframes pulsarRed {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
         }
-        50% { 
-            opacity: 0.5; 
-            transform: scale(1.05); 
-        }
-        100% { 
-            opacity: 1; 
-            transform: scale(1); 
-        }
-    }
 
-    /* Classe de alerta */
-    .piscar-alerta {
-        animation: pulsarRed 0.8s infinite !important;
-        color: #ff4d4d !important;
-        text-shadow: 0 0 10px rgba(255, 77, 77, 0.5) !important;
-        display: inline-block !important;
-    }
-</style>
+        .piscar-alerta {
+            animation: pulsarRed 0.8s infinite !important;
+            color: #ff4d4d !important;
+            text-shadow: 0 0 10px rgba(255, 77, 77, 0.5) !important;
+            display: inline-block !important;
+        }
 
+        .btn-danger { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 12px; margin-bottom: 10px; }
+        .btn-delete-item { background: none; border: none; color: #ef4444; cursor: pointer; font-weight: bold; font-size: 16px; padding: 0 5px; }
+    </style>
 </head>
 <body>
 
@@ -97,23 +40,23 @@
     </div>
 
     <div class="card-gasto">
-    <h3>Nova Medição</h3>
-    <input type="text" id="nomePessoa" placeholder="Nome da Pessoa (Somente para Chuveiros)">
-    
-    <select id="dispositivoGasto" onchange="verificarDispositivo()">
-        <option value="Chuveiro Suíte">Chuveiro Suíte</option>
-        <option value="Chuveiro Geral">Chuveiro Geral</option>
-        <option value="Máquina de Lavar">Máquina de Lavar</option>
-        <option value="Torneira Geral">Torneira Geral</option>
-    </select>
-    
-    <div id="displayConsumo" style="font-size: 32px; font-weight: bold; color: #ffc107; margin: 15px 0;">0.0 L</div>
-    <button id="btnMedir" onclick="toggleMedicao()" class="btn-medir" style="background: #22c55e; color: white;">INICIAR MEDIÇÃO</button>
-</div>
-
+        <h3>Nova Medição</h3>
+        <input type="text" id="nomePessoa" placeholder="Nome da Pessoa">
+        <select id="dispositivoGasto" onchange="verificarDispositivo()">
+            <option value="Chuveiro Suíte">Chuveiro Suíte</option>
+            <option value="Chuveiro Geral">Chuveiro Geral</option>
+            <option value="Máquina de Lavar">Máquina de Lavar</option>
+            <option value="Torneira Geral">Torneira Geral</option>
+        </select>
+        <div id="displayConsumo" style="font-size: 32px; font-weight: bold; color: #ffc107; margin: 15px 0;">0.0 L</div>
+        <button id="btnMedir" onclick="toggleMedicao()" class="btn-medir" style="background: #22c55e; color: white;">INICIAR MEDIÇÃO</button>
+    </div>
 
     <div class="card-gasto">
-        <h3 style="color: #00c6ff;">🏆 Ranking de Consumo</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="color: #00c6ff; margin: 0;">🏆 Ranking (7 Dias)</h3>
+            <button class="btn-danger" onclick="limparHistoricoTotal()">Zerar Mês</button>
+        </div>
         <div id="rankingConsumo"></div>
     </div>
 
