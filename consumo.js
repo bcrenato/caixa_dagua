@@ -70,33 +70,38 @@ function toggleMedicao() {
 }
 
 // 3. ATUALIZAÇÃO DA INTERFACE (RANKING E TABELA)
+// Substitua a função atualizarInterface no seu consumo.js por esta:
+
 function atualizarInterface() {
     database.ref('historico_gasto').once('value', (snapshot) => {
         const dataSnap = snapshot.val();
         const corpoTabela = document.getElementById("corpoTabela");
         const rankingDiv = document.getElementById("rankingConsumo");
+        const displayTotalDia = document.getElementById("totalLitrosDia");
+        const labelData = document.getElementById("labelDataResumo");
         const filtroData = document.getElementById("filtroCalendario").value;
         const tituloRanking = document.getElementById("tituloRanking");
 
         if (!dataSnap) {
             corpoTabela.innerHTML = "<tr><td>Sem registros</td></tr>";
-            rankingDiv.innerHTML = ""; return;
+            displayTotalDia.innerText = "0.0 L";
+            return;
         }
 
         const registrosEntries = Object.entries(dataSnap).reverse();
         const totais = {};
+        let somaTotalDia = 0; // Variável para o resumo diário
+        
         corpoTabela.innerHTML = "";
         rankingDiv.innerHTML = "";
 
-        // Formata a data do calendário para comparar (YYYY-MM-DD -> DD/MM/YYYY)
-        let dataFiltroFormatada = "";
-        if (filtroData) {
-            const partes = filtroData.split('-');
-            dataFiltroFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
-            tituloRanking.innerText = `📅 Ranking ${dataFiltroFormatada}`;
-        } else {
-            tituloRanking.innerText = `🏆 Ranking Semanal`;
-        }
+        // Formatação de Datas
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        let dataAlvo = filtroData ? 
+            `${filtroData.split('-')[2]}/${filtroData.split('-')[1]}/${filtroData.split('-')[0]}` : 
+            hoje;
+
+        labelData.innerText = `Referente a: ${dataAlvo}`;
 
         const umaSemanaAtras = new Date();
         umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
@@ -105,10 +110,15 @@ function atualizarInterface() {
             const dPartes = item.data.split('/');
             const dReg = new Date(dPartes[2], dPartes[1]-1, dPartes[0]);
 
-            // LÓGICA DO FILTRO: Se calendário estiver vazio, usa 7 dias. Se não, usa o dia escolhido.
+            // 1. Lógica para o Resumo do Dia Selecionado
+            if (item.data === dataAlvo) {
+                somaTotalDia += parseFloat(item.gasto);
+            }
+
+            // 2. Lógica para o Ranking (Filtro ou Semanal)
             let deveIncluirNoRanking = false;
             if (filtroData) {
-                if (item.data === dataFiltroFormatada) deveIncluirNoRanking = true;
+                if (item.data === dataAlvo) deveIncluirNoRanking = true;
             } else {
                 if (dReg >= umaSemanaAtras) deveIncluirNoRanking = true;
             }
@@ -117,7 +127,7 @@ function atualizarInterface() {
                 totais[item.pessoa] = (totais[item.pessoa] || 0) + parseFloat(item.gasto);
             }
 
-            // Histórico sempre mostra os últimos 10
+            // 3. Tabela (Sempre os últimos 10)
             if(index < 10) {
                 const cor = parseFloat(item.gasto) > 60 ? "#ff4d4d" : "#ffc107";
                 corpoTabela.innerHTML += `
@@ -131,8 +141,15 @@ function atualizarInterface() {
             }
         });
 
+        // Atualiza o visor de Resumo Geral do Dia
+        displayTotalDia.innerText = somaTotalDia.toFixed(1) + " L";
+        // Muda cor do resumo se o dia estiver muito "gastão"
+        displayTotalDia.style.color = somaTotalDia > 400 ? "#ef4444" : "#22c55e";
+
         // Desenha Ranking
         const ordenado = Object.entries(totais).sort((a,b) => b[1]-a[1]);
+        tituloRanking.innerText = filtroData ? `📅 Ranking de ${dataAlvo}` : `🏆 Ranking Semanal`;
+
         if (ordenado.length > 0) {
             const max = ordenado[0][1];
             ordenado.forEach(([nome, total]) => {
