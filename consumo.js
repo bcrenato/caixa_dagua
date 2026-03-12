@@ -33,30 +33,31 @@ function toggleMedicao() {
     const localSelect = document.getElementById("dispositivoGasto");
 
     if (!medindo) {
-        // Validação: Se não for máquina, o nome é obrigatório
-        if (localSelect.value !== "Máquina de Lavar" && !nomeInput.value.trim()) {
-            alert("Por favor, digite o nome de quem vai tomar banho!");
+        // Agora o nome é opcional se for Máquina OU Torneira
+        const local = localSelect.value;
+        const precisaNome = (local !== "Máquina de Lavar" && local !== "Torneira Geral");
+
+        if (precisaNome && !nomeInput.value.trim()) {
+            alert("Por favor, digite o nome de quem vai usar!");
             return;
         }
 
         medindo = true;
-        litrosNoInicio = litrosAtuaisDoSensor; // Marca o volume no começo
-        btn.innerText = "FINALIZAR E SALVAR";
+        litrosNoInicio = litrosAtuaisDoSensor; 
+        btn.innerText = "FINALIZAR E REGISTRAR";
         btn.style.background = "#ef4444";
         display.innerText = "Medindo...";
-        display.style.color = "#ffc107";
     } else {
         medindo = false;
-        let gastoTotal = Math.max(0, litrosNoInicio - litrosAtuaisDoSensor); // Diferença de nível
+        let gastoTotal = Math.max(0, litrosNoInicio - litrosAtuaisDoSensor); 
         
-        // Identificador: Se nome estiver vazio, usa o nome do local (ex: Máquina de Lavar)
+        // Identificador inteligente: Nome da pessoa ou o Nome do Local
         let identificador = nomeInput.value.trim() || localSelect.value;
 
         btn.innerText = "INICIAR MEDIÇÃO";
         btn.style.background = "#22c55e";
         display.innerText = gastoTotal.toFixed(1) + " L";
 
-        // Salva o registro completo no Firebase
         const agora = new Date();
         database.ref('historico_gasto').push({
             pessoa: identificador,
@@ -66,9 +67,10 @@ function toggleMedicao() {
             data: agora.toLocaleDateString('pt-BR')
         });
         
-        nomeInput.value = ""; // Limpa o campo para a próxima pessoa
+        nomeInput.value = ""; 
     }
 }
+
 
 // 3. ATUALIZAÇÃO DO RANKING E TABELA EM TEMPO REAL
 database.ref('historico_gasto').on('value', (snapshot) => {
