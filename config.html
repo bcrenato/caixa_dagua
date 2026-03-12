@@ -3,39 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurações - Monitor</title>
+    <title>Configurações Avançadas</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .config-container { background: #1e293b; padding: 25px; border-radius: 20px; max-width: 400px; margin: 40px auto; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .val-bruto { font-size: 32px; color: #00c6ff; margin: 10px 0; font-weight: bold; }
-        .setup-group { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
-        input { width: 80%; padding: 10px; margin: 10px 0; border-radius: 8px; border: none; text-align: center; font-size: 16px; }
-        button { width: 90%; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; margin: 5px 0; transition: 0.3s; }
-        .btn-cap { background: #334155; color: white; }
-        .btn-save { background: #22c55e; color: white; margin-top: 15px; }
-        .btn-back { background: #ef4444; color: white; }
+        .config-container { background: #1e293b; padding: 20px; border-radius: 20px; max-width: 450px; margin: 20px auto; }
+        .setup-group { background: #0f172a; padding: 10px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
+        input { width: 70%; padding: 8px; margin: 5px; border-radius: 5px; border: none; text-align: center; }
+        label { display: block; font-size: 12px; color: #94a3b8; }
+        h3 { margin: 5px 0; color: #00c6ff; }
+        button { width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin-top: 5px; }
+        .btn-save { background: #22c55e; color: white; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="config-container">
-        <h2>CALIBRAÇÃO</h2>
-        <p>Valor vindo do Sensor (A0):</p>
-        <div class="val-bruto" id="displayBruto">---</div>
-
+        <h2 style="text-align: center;">⚙️ CONFIGURAÇÃO</h2>
+        
         <div class="setup-group">
-            <label>VALOR CAIXA VAZIA</label>
-            <input type="number" id="inputMin" placeholder="Ex: 100">
-            <button class="btn-cap" onclick="capturar('min')">Capturar Atual como Vazio</button>
+            <label>VALOR DO SENSOR AGORA (A0):</label>
+            <h3 id="displayBruto">---</h3>
+            <button onclick="capturar('min')">CAPTURAR VAZIO (0%)</button>
+            <button onclick="capturar('max')">CAPTURAR CHEIO (100%)</button>
         </div>
 
         <div class="setup-group">
-            <label>VALOR CAIXA CHEIA</label>
-            <input type="number" id="inputMax" placeholder="Ex: 950">
-            <button class="btn-cap" onclick="capturar('max')">Capturar Atual como Cheio</button>
+            <label>ALTURA ÚTIL DA CAIXA (cm)</label>
+            <input type="number" id="h" placeholder="Ex: 76">
+            <label>RAIO DA BASE (cm)</label>
+            <input type="number" id="rb" placeholder="Ex: 58">
+            <label>RAIO DO TOPO (cm)</label>
+            <input type="number" id="rt" placeholder="Ex: 75.5">
         </div>
 
-        <button class="btn-save" onclick="salvar()">SALVAR CONFIGURAÇÃO</button>
-        <button class="btn-back" onclick="window.location.href='index.html'">VOLTAR</button>
+        <button class="btn-save" onclick="salvar()">SALVAR TUDO</button>
+        <button style="background: #ef4444; color: white;" onclick="window.location.href='index.html'">VOLTAR</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -51,6 +52,7 @@
         const db = firebase.database();
 
         let valorRaw = 0;
+        let inputMin = 0, inputMax = 1023;
 
         db.ref('valor_bruto').on('value', (s) => {
             valorRaw = s.val();
@@ -58,14 +60,19 @@
         });
 
         function capturar(t) {
-            document.getElementById(t === 'min' ? 'inputMin' : 'inputMax').value = valorRaw;
+            if(t === 'min') inputMin = valorRaw;
+            if(t === 'max') inputMax = valorRaw;
+            alert(t + " capturado: " + valorRaw);
         }
 
         function salvar() {
-            const vMin = document.getElementById('inputMin').value;
-            const vMax = document.getElementById('inputMax').value;
-            db.ref('config').set({ minimo: parseFloat(vMin), maximo: parseFloat(vMax) })
-              .then(() => alert("Calibrado com sucesso!"));
+            db.ref('config').set({
+                minimo: inputMin,
+                maximo: inputMax,
+                altura: parseFloat(document.getElementById('h').value),
+                raioBase: parseFloat(document.getElementById('rb').value),
+                raioTopo: parseFloat(document.getElementById('rt').value)
+            }).then(() => alert("Configurações aplicadas!"));
         }
     </script>
 </body>
