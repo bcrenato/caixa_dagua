@@ -60,10 +60,17 @@
         });
 
         function capturar(t) {
-            if(t === 'min') inputMin = valorRaw;
-            if(t === 'max') inputMax = valorRaw;
-            alert(t + " capturado: " + valorRaw);
-        }
+    if(t === 'min') {
+        inputMin = valorRaw;
+        document.getElementById('btnMin').innerText = "CAPTURAR VAZIO (0%) - " + inputMin;
+    }
+    if(t === 'max') {
+        inputMax = valorRaw;
+        document.getElementById('btnMax').innerText = "CAPTURAR CHEIO (100%) - " + inputMax;
+    }
+    // Opcional: remover o alert para não ficar travando a tela
+    // alert(t + " capturado: " + valorRaw);
+}
 
         function salvar() {
             db.ref('config').set({
