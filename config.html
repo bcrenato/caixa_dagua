@@ -54,6 +54,26 @@
         let valorRaw = 0;
         let inputMin = 0, inputMax = 1023;
 
+// === COLOQUE O CÓDIGO NOVO AQUI (LOGODEPIS DO "const db") ===
+        db.ref('config').once('value').then((snapshot) => {
+            const d = snapshot.val();
+            if(d) {
+                inputMin = d.minimo || 0;
+                inputMax = d.maximo || 1023;
+                // Atualiza o texto dos botões com o que está salvo
+                if(document.getElementById('btnMin')) 
+                    document.getElementById('btnMin').innerText = "CAPTURAR VAZIO (0%) - " + inputMin;
+                if(document.getElementById('btnMax')) 
+                    document.getElementById('btnMax').innerText = "CAPTURAR CHEIO (100%) - " + inputMax;
+                
+                // Preenche os campos numéricos
+                document.getElementById('h').value = d.altura;
+                document.getElementById('rb').value = d.raioBase;
+                document.getElementById('rt').value = d.raioTopo;
+            }
+        });
+        // ==========================================================
+
         db.ref('valor_bruto').on('value', (s) => {
             valorRaw = s.val();
             document.getElementById('displayBruto').innerText = valorRaw;
