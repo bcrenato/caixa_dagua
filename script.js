@@ -168,3 +168,16 @@ if (!MODO_SIMULACAO) {
     }
   });
 }
+
+// Trava para não mandar 500 mensagens por segundo
+let notificacaoEnviada = false;
+
+function enviarTelegram(mensagem) {
+  const token = "8533439908:AAFtykn10UsOEz_NTMPU6pFcptyg0KlYpeI"; // Token do BotFather
+  const chatId = "554870921";   // ID do userinfobot
+  const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(mensagem)}`;
+
+  fetch(url)
+    .then(response => console.log("Telegram enviado!"))
+    .catch(error => console.error("Erro ao enviar Telegram:", error));
+}
