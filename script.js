@@ -106,7 +106,7 @@ function atualizarInterface(nivel, litros) {
 
     // Envia notificação apenas uma vez ao atingir o nível
     if (!notificacaoEnviada) {
-      enviarTelegram("🔔 MONITOR: Caixa d'Água Cheia em Nilópolis! Nível: " + nivel.toFixed(1) + "%. Desligue a bomba.");
+      enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! Nível: " + nivel.toFixed(1) + "%. Desligue a bomba.");
       notificacaoEnviada = true;
     }
   } 
