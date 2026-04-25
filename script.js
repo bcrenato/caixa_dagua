@@ -107,6 +107,7 @@ function atualizarInterface(nivel, litros) {
     // Envia notificação apenas uma vez ao atingir o nível
     if (!notificacaoEnviada) {
       enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! Nível: " + nivel.toFixed(1) + "%. Desligue a bomba.");
+      avisarAlexa(); // NOVO: Faz a Echo Show falar
       notificacaoEnviada = true;
     }
   } 
@@ -192,4 +193,13 @@ function enviarTelegram(mensagem) {
   fetch(url)
     .then(response => console.log("Telegram enviado!"))
     .catch(error => console.error("Erro ao enviar Telegram:", error));
+}
+
+function avisarAlexa() {
+  // Cole aqui o link completo que você copiou da imagem
+  const url = "https://api-v2.voicemonkey.io/trigger?token=9ed63e20213795a3af8393dcab767373_8ca1d0a8f948bcc2ce71d8eb5c58d622&device=caixacheia";
+
+  fetch(url)
+    .then(response => console.log("Alexa avisada com sucesso!"))
+    .catch(error => console.error("Erro ao chamar a Alexa:", error));
 }
