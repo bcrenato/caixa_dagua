@@ -196,10 +196,16 @@ function enviarTelegram(mensagem) {
 }
 
 function avisarAlexa() {
-  // Cole aqui o link completo que você copiou da imagem
-  const url = "https://api-v2.voicemonkey.io/trigger?token=9ed63e20213795a3af8393dcab767373_8ca1d0a8f948bcc2ce71d8eb5c58d622&device=caixacheia";
+  // Ajustamos a URL para garantir que o gatilho seja reconhecido
+  const url = "https://api-v2.voicemonkey.io/trigger?token=9ed63e20213795a3af8393dcab767373_8ca1d0a8f948bcc2ce71d8eb5c58d622&device=caixacheia&monkey=caixacheia";
 
   fetch(url)
-    .then(response => console.log("Alexa avisada com sucesso!"))
+    .then(response => {
+      if (response.ok) {
+        console.log("Sinal enviado para o Voice Monkey!");
+      } else {
+        console.log("Erro na resposta do servidor.");
+      }
+    })
     .catch(error => console.error("Erro ao chamar a Alexa:", error));
 }
