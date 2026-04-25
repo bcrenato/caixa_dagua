@@ -5,6 +5,9 @@ const litrosText = document.getElementById("litrosText");
 const MODO_SIMULACAO = false; // Mude para false para ler do sensor real
 const AREA_UTIL = 49; 
 
+// Variável para não repetir o envio do Telegram várias vezes seguidas
+let notificacaoEnviada = false;
+
 // Medidas da Caixa para Cálculo Real (Tronco de Cone)
 const R_BASE = 58.0;
 const R_TOPO = 75.5;
@@ -100,12 +103,23 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
     alertaGrande.style.background = "rgba(0, 255, 150, 0.9)";
     alertaGrande.style.display = "block";
+
+    // Envia notificação apenas uma vez ao atingir o nível
+    if (!notificacaoEnviada) {
+      enviarTelegram("🔔 MONITOR: Caixa d'Água Cheia em Nilópolis! Nível: " + nivel.toFixed(1) + "%. Desligue a bomba.");
+      notificacaoEnviada = true;
+    }
   } 
   else {
     water.style.background = "linear-gradient(to top,#0077ff,#00c6ff)";
     litrosText.style.color = "#00c6ff";
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
+
+    // Reseta a trava se o nível baixar de 80%
+    if (nivel < 80) {
+      notificacaoEnviada = false;
+    }
   }
 
   grafico.data.labels.push(new Date().toLocaleTimeString());
@@ -169,12 +183,10 @@ if (!MODO_SIMULACAO) {
   });
 }
 
-// Trava para não mandar 500 mensagens por segundo
-let notificacaoEnviada = false;
-
+// ===== FUNÇÃO PARA ENVIAR MENSAGEM AO TELEGRAM =====
 function enviarTelegram(mensagem) {
-  const token = "8533439908:AAFtykn10UsOEz_NTMPU6pFcptyg0KlYpeI"; // Token do BotFather
-  const chatId = "554870921";   // ID do userinfobot
+  const token = "8533439908:AAFtykn10UsOEz_NTMPU6pFcptyg0KlYpeI"; // Token do @BotFather
+  const chatId = "554870921";   // ID do @userinfobot
   const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(mensagem)}`;
 
   fetch(url)
