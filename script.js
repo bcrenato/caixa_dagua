@@ -93,10 +93,10 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.style.background = "rgba(255, 120, 0, 0.9)";
     alertaGrande.style.display = "block";
   } 
-  else if (nivel >= 90) {
+  else if (nivel >= 87) {
     water.style.background = "linear-gradient(to top,#0077ff,#00c6ff)";
     litrosText.style.color = "#00c6ff";
-    statusText.innerText = "Quase Cheio";
+    statusText.innerText = "Caixa Cheia";
     alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
     alertaGrande.style.background = "rgba(0, 255, 150, 0.9)";
     alertaGrande.style.display = "block";
