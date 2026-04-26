@@ -1,19 +1,14 @@
 const alertaGrande = document.getElementById("alertaGrande");
 const litrosText = document.getElementById("litrosText");
 
-// ===== CONFIGURAÇÃO =====
-const MODO_SIMULACAO = false; // Mude para false para ler do sensor real
+const MODO_SIMULACAO = false; 
 const AREA_UTIL = 49; 
-
-// Variável para não repetir o envio do Telegram várias vezes seguidas
 let notificacaoEnviada = false;
 
-// Medidas da Caixa para Cálculo Real (Tronco de Cone)
 const R_BASE = 58.0;
 const R_TOPO = 75.5;
 const H_UTIL = 76.0;
 
-// CONFIGURAÇÕES DO SEU FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
   authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
@@ -24,22 +19,16 @@ const firebaseConfig = {
   appId: "1:176234978770:web:e193d8242f4f111abd3c0b"
 };
 
-// Inicializa o Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-// ===== ELEMENTOS =====
 const water = document.getElementById("water");
 const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 
-// ===== CONTROLE DE NÍVEL =====
 let nivelAtual = 0;
 let nivelDestino = 0;
 
-// ===== ANIMAÇÃO DA ÁGUA =====
 function animar() {
   nivelAtual += (nivelDestino - nivelAtual) * 0.1;
   water.style.height = (nivelAtual * AREA_UTIL / 100) + "%";
@@ -48,192 +37,65 @@ function animar() {
 }
 requestAnimationFrame(animar);
 
-// ===== GRÁFICO (Chart.js) =====
-const ctx = document.getElementById('grafico').getContext('2d');
-const grafico = new Chart(ctx, {
-  type: 'line',
-  data: {
-    labels: [],
-    datasets: [{
-      label: 'Nível (%)',
-      data: [],
-      borderColor: '#00c6ff',
-      backgroundColor: 'rgba(0,198,255,0.15)',
-      fill: true,
-      tension: 0,
-      pointRadius: 2
-    }]
-  },
-  options: {
-    responsive: true,
-    animation: false,
-    plugins: { legend: { display: false } },
-    scales: { y: { min: 0, max: 100 } }
-  }
-});
-
-// ===== LÓGICA DE ALERTAS E INTERFACE =====
 function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
-
-  if (litros !== undefined) {
-    litrosText.innerText = Math.round(litros) + " L";
-  }
+  if (litros !== undefined) litrosText.innerText = Math.round(litros) + " L";
 
   if (nivel <= 20) {
-    water.style.background = "linear-gradient(to top,#ff0000,#ff4d4d)";
-    litrosText.style.color = "#ff4d4d";
     statusText.innerText = "CRÍTICO";
     alertaGrande.innerText = "⚠ LIGAR A BOMBA";
-    alertaGrande.style.background = "rgba(255, 0, 0, 0.9)";
-    alertaGrande.style.display = "block";
-  } 
-  else if (nivel <= 25) {
-    water.style.background = "linear-gradient(to top,#ff7b00,#ffc107)";
-    litrosText.style.color = "#ffc107";
-    statusText.innerText = "Baixo";
-    alertaGrande.innerText = "⚠ LIGAR A BOMBA";
-    alertaGrande.style.background = "rgba(255, 120, 0, 0.9)";
     alertaGrande.style.display = "block";
   } 
   else if (nivel >= 87) {
-    water.style.background = "linear-gradient(to top,#0077ff,#00c6ff)";
-    litrosText.style.color = "#00c6ff";
     statusText.innerText = "Caixa Cheia";
     alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
-    alertaGrande.style.background = "rgba(0, 255, 150, 0.9)";
     alertaGrande.style.display = "block";
-
-    // Envia notificação apenas uma vez ao atingir o nível
     if (!notificacaoEnviada) {
-      enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! Nível: " + nivel.toFixed(1) + "%. Desligue a bomba.");
-      avisarAlexa(); // NOVO: Faz a Echo Show falar
+      enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! Nível: " + nivel.toFixed(1) + "%.");
+      avisarAlexa();
       notificacaoEnviada = true;
     }
   } 
   else {
-    water.style.background = "linear-gradient(to top,#0077ff,#00c6ff)";
-    litrosText.style.color = "#00c6ff";
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
-
-    // Reseta a trava se o nível baixar de 80%
-    if (nivel < 80) {
-      notificacaoEnviada = false;
-    }
+    if (nivel < 80) notificacaoEnviada = false;
   }
-
-  grafico.data.labels.push(new Date().toLocaleTimeString());
-  grafico.data.datasets[0].data.push(nivel);
-  if (grafico.data.labels.length > 20) {
-    grafico.data.labels.shift();
-    grafico.data.datasets[0].data.shift();
-  }
-  grafico.update('none');
 }
 
-// ===== LÓGICA DE SIMULAÇÃO AUTOMÁTICA =====
-if (MODO_SIMULACAO) {
-  let subindo = true;
-  let simNivel = 50;
-
-  setInterval(() => {
-    // Varia o nível para simular enchimento/esvaziamento
-    if (subindo) simNivel += 0.5;
-    else simNivel -= 0.5;
-
-    if (simNivel >= 100) subindo = false;
-    if (simNivel <= 5) subindo = true;
-
-    // CÁLCULO DE TRONCO DE CONE (SIMULADO)
-    const h = (simNivel / 100) * H_UTIL;
-    const raioAt = R_BASE + (R_TOPO - R_BASE) * (h / H_UTIL);
-    const vol_cm3 = (3.14159 * h / 3.0) * (Math.pow(raioAt, 2) + (raioAt * R_BASE) + Math.pow(R_BASE, 2));
-    const litrosSimulados = vol_cm3 / 1000.0;
-
-    // Atualiza o Firebase automaticamente
-    database.ref('/').update({
-      nivel: simNivel,
-      litros: litrosSimulados
-    });
-
-    // Atualiza a tela localmente
-    atualizarInterface(simNivel, litrosSimulados);
-  }, 500); // Atualiza a cada 3 segundos
-}
-
-// ===== ESCUTA O FIREBASE EM TEMPO REAL (MODO REAL) =====
-if (!MODO_SIMULACAO) {
-  // 1. Faz uma leitura instantânea assim que abre o site
-  database.ref('/').once('value').then((snapshot) => {
-    const data = snapshot.val();
-    if (data !== null) {
-      // Sincroniza os valores iniciais imediatamente
-      nivelAtual = parseFloat(data.nivel);
-      nivelDestino = parseFloat(data.nivel);
-      atualizarInterface(nivelDestino, parseFloat(data.litros));
-    }
-  });
-
-  // 2. Mantém a escuta para mudanças futuras (tempo real)
-  database.ref('/').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data !== null) {
-      atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
-    }
-  });
-}
-
-// ===== FUNÇÃO PARA ENVIAR MENSAGEM AO TELEGRAM =====
-function enviarTelegram(mensagem) {
-  const token = "8533439908:AAFtykn10UsOEz_NTMPU6pFcptyg0KlYpeI"; // Token do @BotFather
-  const chatId = "554870921";   // ID do @userinfobot
-  const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(mensagem)}`;
-
-  fetch(url)
-    .then(response => console.log("Telegram enviado!"))
-    .catch(error => console.error("Erro ao enviar Telegram:", error));
-}
-
-function avisarAlexa() {
-  // Ajustamos a URL para garantir que o gatilho seja reconhecido
-  const url = "https://api-v2.voicemonkey.io/trigger?token=9ed63e20213795a3af8393dcab767373_8ca1d0a8f948bcc2ce71d8eb5c58d622&device=caixacheia&monkey=caixacheia";
-
-  fetch(url)
-    .then(response => {
-      if (response.ok) {
-        console.log("Sinal enviado para o Voice Monkey!");
-      } else {
-        console.log("Erro na resposta do servidor.");
-      }
-    })
-    .catch(error => console.error("Erro ao chamar a Alexa:", error));
-}
-
-// Função para buscar o gasto diário e exibir na Home
+// Função para exibir o gasto diário na Home
 function monitorarGastoHome() {
     const displayHome = document.getElementById("totalLitrosDiaHome");
     if (!displayHome) return;
-
     database.ref('historico_gasto').on('value', (snapshot) => {
         const data = snapshot.val();
         let somaHoje = 0;
         const hoje = new Date().toLocaleDateString('pt-BR');
-
         if (data) {
             Object.values(data).forEach(item => {
-                if (item.data === hoje) {
-                    somaHoje += parseFloat(item.gasto);
-                }
+                if (item.data === hoje) somaHoje += parseFloat(item.gasto);
             });
         }
         displayHome.innerText = somaHoje.toFixed(1) + " L";
         displayHome.style.color = somaHoje > 400 ? "#ef4444" : "#22c55e";
     });
 }
-
-// Chame a função logo após inicializar o Firebase
 monitorarGastoHome();
 
-// IMPORTANTE: Remova ou comente toda a parte do Chart.js (const grafico = new Chart...)
-// para evitar erros no console já que o canvas foi removido.
+if (!MODO_SIMULACAO) {
+  database.ref('/').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
+  });
+}
+
+function enviarTelegram(mensagem) {
+  const token = "8533439908:AAFtykn10UsOEz_NTMPU6pFcptyg0KlYpeI";
+  const chatId = "554870921";
+  fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(mensagem)}`);
+}
+
+function avisarAlexa() {
+  const url = "https://api-v2.voicemonkey.io/trigger?token=9ed63e20213795a3af8393dcab767373_8ca1d0a8f948bcc2ce71d8eb5c58d622&device=caixacheia&monkey=caixacheia";
+  fetch(url);
+}
