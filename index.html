@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Monitor Caixa D’Água</title>
 <link rel="stylesheet" href="style.css">
+<style>
+  .btn-filtro { background: #1e293b; color: #94a3b8; border: 1px solid #3b82f6; padding: 5px 10px; border-radius: 8px; font-size: 10px; cursor: pointer; transition: 0.3s; }
+  .btn-filtro.active { background: #3b82f6; color: white; }
+</style>
 </head>
 <body>
 
@@ -12,11 +16,6 @@
   <div class="titulo-box" style="position: relative;">
     <h2 class="titulo-principal">CAIXA D’ÁGUA</h2>
     <p class="subtitulo">Marechal Castelo Branco</p>
-
-    <button onclick="window.location.href='consumo.html'" style="width: 100%; padding: 15px; background: #3b82f6; color: white; border-radius: 12px; border: none; font-weight: bold; margin-top: 15px; cursor: pointer;">
-      📊 VER CONSUMO E RANKING
-    </button>
-    
     <a href="config.html" style="position: absolute; right: 0; top: 0; text-decoration: none; font-size: 24px;">⚙️</a>
   </div>
 
@@ -35,10 +34,17 @@
       <p id="status">Normal</p>
   </div>
 
-  <div class="card-chart" style="text-align: center; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #3b82f6;">
-      <h4 style="color: #94a3b8; margin: 0; font-size: 12px; text-transform: uppercase;">Gasto Total Hoje</h4>
-      <div id="totalLitrosDiaHome" style="font-size: 32px; font-weight: bold; color: #22c55e; margin: 5px 0;">0.0 L</div>
-      <p style="font-size: 11px; color: #64748b; margin: 0;">Atualizado em tempo real</p>
+  <div class="card-chart" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #3b82f6; padding: 15px; margin-top: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h4 id="labelGasto" style="color: #94a3b8; margin: 0; font-size: 12px; text-transform: uppercase;">Gasto Hoje</h4>
+          <div style="display: flex; gap: 5px;">
+              <button class="btn-filtro active" id="btnHoje" onclick="mudarFiltroHome('hoje')">HOJE</button>
+              <button class="btn-filtro" id="btnSemana" onclick="mudarFiltroHome('semana')">7D</button>
+              <button class="btn-filtro" id="btnMes" onclick="mudarFiltroHome('mes')">30D</button>
+          </div>
+      </div>
+      <div id="totalLitrosHome" style="font-size: 36px; font-weight: bold; color: #22c55e; text-align: center; margin: 5px 0;">0.0 L</div>
+      <p style="font-size: 11px; color: #64748b; text-align: center; margin: 0;">Cálculo automático via sensor</p>
   </div>
 </div>
 
