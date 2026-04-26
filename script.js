@@ -209,3 +209,31 @@ function avisarAlexa() {
     })
     .catch(error => console.error("Erro ao chamar a Alexa:", error));
 }
+
+// Função para buscar o gasto diário e exibir na Home
+function monitorarGastoHome() {
+    const displayHome = document.getElementById("totalLitrosDiaHome");
+    if (!displayHome) return;
+
+    database.ref('historico_gasto').on('value', (snapshot) => {
+        const data = snapshot.val();
+        let somaHoje = 0;
+        const hoje = new Date().toLocaleDateString('pt-BR');
+
+        if (data) {
+            Object.values(data).forEach(item => {
+                if (item.data === hoje) {
+                    somaHoje += parseFloat(item.gasto);
+                }
+            });
+        }
+        displayHome.innerText = somaHoje.toFixed(1) + " L";
+        displayHome.style.color = somaHoje > 400 ? "#ef4444" : "#22c55e";
+    });
+}
+
+// Chame a função logo após inicializar o Firebase
+monitorarGastoHome();
+
+// IMPORTANTE: Remova ou comente toda a parte do Chart.js (const grafico = new Chart...)
+// para evitar erros no console já que o canvas foi removido.
