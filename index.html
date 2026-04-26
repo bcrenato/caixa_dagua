@@ -9,53 +9,41 @@
 <body>
 
 <div class="dashboard">
-
   <div class="titulo-box" style="position: relative;">
-  <h2 class="titulo-principal">CAIXA D’ÁGUA</h2>
-  <p class="subtitulo">Marechal Castelo Branco</p>
+    <h2 class="titulo-principal">CAIXA D’ÁGUA</h2>
+    <p class="subtitulo">Marechal Castelo Branco</p>
 
-
-  <button onclick="window.location.href='consumo.html'" style="width: 100%; padding: 15px; background: #3b82f6; color: white; border-radius: 12px; border: none; font-weight: bold; margin-top: 15px; cursor: pointer;">
-    📊 VER CONSUMO E RANKING
-  </button>
-
-
-
+    <button onclick="window.location.href='consumo.html'" style="width: 100%; padding: 15px; background: #3b82f6; color: white; border-radius: 12px; border: none; font-weight: bold; margin-top: 15px; cursor: pointer;">
+      📊 VER CONSUMO E RANKING
+    </button>
     
-  <a href="config.html" style="position: absolute; right: 0; top: 0; text-decoration: none; font-size: 24px;">⚙️</a>
-</div>
+    <a href="config.html" style="position: absolute; right: 0; top: 0; text-decoration: none; font-size: 24px;">⚙️</a>
+  </div>
 
   <div class="card-tank">
       <div class="tank">
-    <div class="water" id="water">
-        <div class="wave wave1"></div>
-        <div class="wave wave2"></div>
-    </div>
-
-    <div id="alertaGrande" class="alerta-grande"></div>
-
-    <img src="caixa.png" class="tank-img">
-    <div class="glass"></div>
-</div>
+        <div class="water" id="water">
+            <div class="wave wave1"></div>
+            <div class="wave wave2"></div>
+        </div>
+        <div id="alertaGrande" class="alerta-grande"></div>
+        <img src="caixa.png" class="tank-img">
+        <div class="glass"></div>
+      </div>
       <h1 id="percent">0%</h1>
       <h2 id="litrosText" style="font-size: 22px; margin: 0; font-weight: bold; opacity: 0.9;">0 L</h2>
       <p id="status">Normal</p>
   </div>
 
   <div class="card-chart" style="text-align: center; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #3b82f6;">
-    <h4 style="color: #94a3b8; margin: 0; font-size: 12px; text-transform: uppercase;">Gasto Total Hoje</h4>
-    <div id="totalLitrosDiaHome" style="font-size: 32px; font-weight: bold; color: #22c55e; margin: 5px 0;">0.0 L</div>
-    <p style="font-size: 11px; color: #64748b; margin: 0;">Atualizado em tempo real</p>
-</div>
-
-
+      <h4 style="color: #94a3b8; margin: 0; font-size: 12px; text-transform: uppercase;">Gasto Total Hoje</h4>
+      <div id="totalLitrosDiaHome" style="font-size: 32px; font-weight: bold; color: #22c55e; margin: 5px 0;">0.0 L</div>
+      <p style="font-size: 11px; color: #64748b; margin: 0;">Atualizado em tempo real</p>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script src="script.js"></script>
 
 </body>
