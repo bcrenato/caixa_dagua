@@ -80,7 +80,7 @@ function processarConsumoAutomatico(litrosAtuais) {
     }
 
     // Só registra gasto se a média cair MAIS de 3 litros (margem de segurança)
-    if (mediaAtual < (ultimoValorLitros - 3.0)) {
+    if (mediaAtual < (ultimoValorLitros - 1.5)) {
         let gastoReal = ultimoValorLitros - mediaAtual;
         salvarGastoFirebase(gastoReal);
         ultimoValorLitros = mediaAtual; // Trava no novo menor valor
