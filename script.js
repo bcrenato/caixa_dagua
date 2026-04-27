@@ -4,11 +4,13 @@ const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 const water = document.getElementById("water");
 
-// ===== CONFIGURAÇÕES =====
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
-let ultimoValorEstavel = null; // Agora atua como a Trava de Menor Valor
+let ultimoValorEstavel = null; 
 let filtroHome = 'hoje';
+
+// --- TRAVA DE SEGURANÇA CONTRA REPETIÇÃO ---
+let ultimaGravacao = 0; // Armazena o tempo da última gravação
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -57,34 +59,35 @@ function atualizarInterface(nivel, litros) {
   } else {
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
-    if (nivel < 80) {
-        notificacaoEnviada = false;
-    }
+    if (nivel < 80) notificacaoEnviada = false;
   }
 }
 
-// ===== LÓGICA DE HISTÓRICO AUTOMÁTICO POR TRAVA (ESTILO CATRACA) =====
+// ===== LÓGICA DE CATRACA COM BLOQUEIO POR TEMPO =====
 function processarConsumoAutomatico(litrosAtuais) {
-    // 1. Inicializa a trava na primeira leitura
+    const agora = Date.now();
+
     if (ultimoValorEstavel === null) {
         ultimoValorEstavel = litrosAtuais;
         return;
     }
 
-    // 2. Se o valor atual for MENOR que a trava, houve gasto real
-    // Usamos uma margem de 0.5L para evitar gravar ruídos mínimos
-    if (litrosAtuais < (ultimoValorEstavel - 0.5)) {
+    // Só entra se houver queda real de pelo menos 1.5L (para ignorar o ruído do sensor)
+    if (litrosAtuais < (ultimoValorEstavel - 1.5)) {
+        
+        // --- TRAVA CRÍTICA ---
+        // Se a última gravação foi há menos de 5 segundos, IGNORE.
+        if (agora - ultimaGravacao < 5000) return; 
+
         let gastoConfirmado = ultimoValorEstavel - litrosAtuais;
         
-        // Grava no histórico automático
         salvarGastoFirebase(gastoConfirmado);
         
-        // O novo recorde de nível baixo vira a nova trava
-        ultimoValorEstavel = litrosAtuais;
+        ultimoValorEstavel = litrosAtuais; // Atualiza a trava
+        ultimaGravacao = agora; // Registra o tempo da gravação
     } 
     
-    // 3. Se o nível subir (enchimento da caixa pela bomba)
-    // Se subir mais de 10L, destravamos a catraca para o novo topo da caixa
+    // Se a caixa encher, apenas reseta a trava para o novo topo
     else if (litrosAtuais > (ultimoValorEstavel + 10.0)) {
         ultimoValorEstavel = litrosAtuais;
     }
@@ -136,7 +139,6 @@ function atualizarDisplayGasto() {
     });
 }
 
-// Inicialização
 database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
