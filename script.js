@@ -7,12 +7,8 @@ const water = document.getElementById("water");
 // ===== CONFIGURAÇÕES =====
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
-let ultimoValorLitros = null;
+let menorValorTrava = null; // A "catraca" que só aceita valores menores
 let filtroHome = 'hoje';
-
-// Variáveis para o Filtro de Estabilidade Extrema
-let listaLeituras = [];
-const TAMANHO_FILTRO = 150; // Filtro muito longo para ignorar ruído elétrico
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -42,7 +38,7 @@ function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
   if (litros !== undefined) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoAutomatico(litros); 
+      processarConsumoCatraca(litros); // Nova lógica de catraca
   }
 
   if (nivel <= 20) {
@@ -65,30 +61,29 @@ function atualizarInterface(nivel, litros) {
   }
 }
 
-// ===== LÓGICA DE BLOQUEIO DE OSCILAÇÃO (ANTI-RUÍDO) =====
-function processarConsumoAutomatico(litrosAtuais) {
-    // 1. Criamos uma média muito estável
-    listaLeituras.push(litrosAtuais);
-    if (listaLeituras.length > TAMANHO_FILTRO) listaLeituras.shift();
-    const mediaAtual = listaLeituras.reduce((a, b) => a + b, 0) / listaLeituras.length;
-
-    if (ultimoValorLitros === null) {
-        ultimoValorLitros = mediaAtual;
+// ===== LÓGICA DE CONSUMO POR CATRACA (MENOR VALOR ABSOLUTO) =====
+function processarConsumoCatraca(litrosAtuais) {
+    // 1. Inicializa a catraca com o valor atual se estiver vazia
+    if (menorValorTrava === null) {
+        menorValorTrava = litrosAtuais;
         return;
     }
 
-    // 2. REGRA DE OURO: Só aceita como gasto se a queda for MAIOR que 10 litros
-    // Isso ignora todas as oscilações de 1L ou 2L que aparecem na sua imagem
-    let queda = ultimoValorLitros - mediaAtual;
-
-    if (queda > 10.0) { 
-        salvarGastoFirebase(queda);
-        ultimoValorLitros = mediaAtual; // Fixa o novo patamar
+    // 2. Se o valor atual for MENOR que a trava, houve gasto real
+    if (litrosAtuais < menorValorTrava) {
+        let diferencaGasto = menorValorTrava - litrosAtuais;
+        
+        // Só salva se a diferença for relevante (ex: mais de 0.2L) para evitar micro-registros
+        if (diferencaGasto > 0.2) {
+            salvarGastoFirebase(diferencaGasto);
+            menorValorTrava = litrosAtuais; // A catraca "desce" para o novo recorde
+        }
     } 
     
-    // 3. Se o nível subir (bomba ligada ou ruído para cima), apenas acompanha o topo
-    else if (mediaAtual > (ultimoValorLitros + 5.0)) {
-        ultimoValorLitros = mediaAtual;
+    // 3. Se a caixa subir muito (ex: 15L), entendemos que a bomba ligou
+    // Isso reseta a catraca para o novo topo, permitindo medir o consumo da caixa cheia
+    else if (litrosAtuais > (menorValorTrava + 15.0)) {
+        menorValorTrava = litrosAtuais;
     }
 }
 
