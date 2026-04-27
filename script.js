@@ -7,8 +7,11 @@ const water = document.getElementById("water");
 // ===== CONFIGURAÇÕES =====
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
-let menorValorTrava = null; // A "catraca" que só aceita valores menores
+let menorValorTrava = null; 
 let filtroHome = 'hoje';
+
+// NOVA TRAVA DE SEGURANÇA
+let processandoGasto = false; 
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -38,7 +41,7 @@ function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
   if (litros !== undefined) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoCatraca(litros); // Nova lógica de catraca
+      processarConsumoCatraca(litros); 
   }
 
   if (nivel <= 20) {
@@ -61,28 +64,33 @@ function atualizarInterface(nivel, litros) {
   }
 }
 
-// ===== LÓGICA DE CONSUMO POR CATRACA (MENOR VALOR ABSOLUTO) =====
+// ===== LÓGICA DE CATRACA COM BLOQUEIO DE REPETIÇÃO =====
 function processarConsumoCatraca(litrosAtuais) {
-    // 1. Inicializa a catraca com o valor atual se estiver vazia
     if (menorValorTrava === null) {
         menorValorTrava = litrosAtuais;
         return;
     }
 
-    // 2. Se o valor atual for MENOR que a trava, houve gasto real
-    if (litrosAtuais < menorValorTrava) {
-        let diferencaGasto = menorValorTrava - litrosAtuais;
+    // Se já estivermos processando um gasto, ignoramos novas leituras por um tempo
+    if (processandoGasto) return;
+
+    // A catraca só desce se o valor for menor que a trava menos uma margem de segurança (2L)
+    if (litrosAtuais < (menorValorTrava - 2.0)) {
+        processandoGasto = true; // Ativa a trava de segurança
         
-        // Só salva se a diferença for relevante (ex: mais de 0.2L) para evitar micro-registros
-        if (diferencaGasto > 0.2) {
-            salvarGastoFirebase(diferencaGasto);
-            menorValorTrava = litrosAtuais; // A catraca "desce" para o novo recorde
-        }
+        let diferencaGasto = menorValorTrava - litrosAtuais;
+        salvarGastoFirebase(diferencaGasto);
+        
+        menorValorTrava = litrosAtuais; // Atualiza a trava para o novo menor valor
+
+        // Libera a trava após 3 segundos para dar tempo do sensor estabilizar
+        setTimeout(() => {
+            processandoGasto = false;
+        }, 3000);
     } 
     
-    // 3. Se a caixa subir muito (ex: 15L), entendemos que a bomba ligou
-    // Isso reseta a catraca para o novo topo, permitindo medir o consumo da caixa cheia
-    else if (litrosAtuais > (menorValorTrava + 15.0)) {
+    // Se a caixa subir (encher), resetamos a catraca para o novo topo
+    else if (litrosAtuais > (menorValorTrava + 10.0)) {
         menorValorTrava = litrosAtuais;
     }
 }
