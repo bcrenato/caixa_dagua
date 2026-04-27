@@ -8,6 +8,10 @@
 <style>
   .btn-filtro { background: #1e293b; color: #94a3b8; border: 1px solid #3b82f6; padding: 5px 10px; border-radius: 8px; font-size: 10px; cursor: pointer; transition: 0.3s; }
   .btn-filtro.active { background: #3b82f6; color: white; }
+  
+  /* Estilo do botão de atalho restaurado */
+  .btn-navegacao { width: 100%; padding: 12px; background: #334155; color: white; border-radius: 12px; border: 1px solid #475569; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 13px; transition: 0.3s; }
+  .btn-navegacao:hover { background: #475569; }
 </style>
 </head>
 <body>
@@ -34,9 +38,13 @@
       <p id="status">Normal</p>
   </div>
 
-  <div class="card-chart" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #3b82f6; padding: 15px; margin-top: 20px;">
+  <button onclick="window.location.href='consumo.html'" class="btn-navegacao">
+    📊 DETALHES E HISTÓRICO DE GASTOS
+  </button>
+
+  <div class="card-chart" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #3b82f6; padding: 15px; margin-top: 15px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <h4 id="labelGasto" style="color: #94a3b8; margin: 0; font-size: 12px; text-transform: uppercase;">Gasto Hoje</h4>
+          <h4 id="labelGasto" style="color: #94a3b8; margin: 0; font-size: 11px; text-transform: uppercase;">Gasto Hoje</h4>
           <div style="display: flex; gap: 5px;">
               <button class="btn-filtro active" id="btnHoje" onclick="mudarFiltroHome('hoje')">HOJE</button>
               <button class="btn-filtro" id="btnSemana" onclick="mudarFiltroHome('semana')">7D</button>
@@ -44,7 +52,7 @@
           </div>
       </div>
       <div id="totalLitrosHome" style="font-size: 36px; font-weight: bold; color: #22c55e; text-align: center; margin: 5px 0;">0.0 L</div>
-      <p style="font-size: 11px; color: #64748b; text-align: center; margin: 0;">Cálculo automático via sensor</p>
+      <p style="font-size: 10px; color: #64748b; text-align: center; margin: 0;">Cálculo automático via sensor</p>
   </div>
 </div>
 
