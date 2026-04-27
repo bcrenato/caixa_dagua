@@ -7,12 +7,12 @@ const water = document.getElementById("water");
 // ===== CONFIGURAÇÕES =====
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
-let ultimoValorEstavel = null; // Trava de segurança
+let menorValorTrava = null; // A "catraca" que só aceita valores menores
 let filtroHome = 'hoje';
 
-// Variáveis para Filtragem de Ruído
-let leiturasParaConfirmar = [];
-const LIMITE_CONFIRMACAO = 10; // Precisa de 10 leituras iguais para mudar
+// Variáveis para estabilizar o sensor
+let listaLeituras = [];
+const TAMANHO_FILTRO = 20; 
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -42,7 +42,7 @@ function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
   if (litros !== undefined) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoAutomatico(litros); // Função principal corrigida
+      processarConsumoAutomatico(litros); 
   }
 
   if (nivel <= 20) {
@@ -61,42 +61,35 @@ function atualizarInterface(nivel, litros) {
   } else {
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
-    if (nivel < 80) {
-        notificacaoEnviada = false;
-    }
+    if (nivel < 80) notificacaoEnviada = false;
   }
 }
 
-// ===== NOVA LÓGICA DE HISTÓRICO AUTOMÁTICO COM FILTRO =====
+// ===== LÓGICA DE CONSUMO REFORMULADA (MENOR VALOR ESTÁVEL) =====
 function processarConsumoAutomatico(litrosAtuais) {
-    if (ultimoValorEstavel === null) {
-        ultimoValorEstavel = litrosAtuais;
+    // 1. Suaviza a leitura para ignorar picos rápidos
+    listaLeituras.push(litrosAtuais);
+    if (listaLeituras.length > TAMANHO_FILTRO) listaLeituras.shift();
+    const mediaAtual = listaLeituras.reduce((a, b) => a + b, 0) / listaLeituras.length;
+
+    if (menorValorTrava === null) {
+        menorValorTrava = mediaAtual;
         return;
     }
 
-    // Se o valor baixou mais de 3L, começamos a monitorar a estabilidade
-    if (litrosAtuais < (ultimoValorEstavel - 3.0)) {
-        leiturasParaConfirmar.push(litrosAtuais);
-
-        // Só grava no histórico se o valor ficar baixo por várias leituras
-        if (leiturasParaConfirmar.length >= LIMITE_CONFIRMACAO) {
-            let gastoConfirmado = ultimoValorEstavel - litrosAtuais;
-            
-            // Grava uma única vez no histórico automático
-            salvarGastoFirebase(gastoConfirmado);
-            
-            // Atualiza a trava para o novo valor
-            ultimoValorEstavel = litrosAtuais;
-            leiturasParaConfirmar = []; 
+    // 2. Se a média baixar da trava atual (com margem de 1.5L para evitar o ruído)
+    if (mediaAtual < (menorValorTrava - 1.5)) {
+        let gastoReal = menorValorTrava - mediaAtual;
+        
+        // Só grava se o gasto for relevante
+        if (gastoReal > 0.5) {
+            salvarGastoFirebase(gastoReal);
+            menorValorTrava = mediaAtual; // Fixa o novo "piso"
         }
     } 
-    // Se o nível subir (enchente ou oscilação alta), reseta a trava
-    else if (litrosAtuais > (ultimoValorEstavel + 5.0)) {
-        ultimoValorEstavel = litrosAtuais;
-        leiturasParaConfirmar = [];
-    } else {
-        // Se o valor voltou ao normal, limpa a fila de confirmação
-        leiturasParaConfirmar = [];
+    // 3. Se a caixa encher (subir mais de 10L), atualizamos a trava para o novo topo
+    else if (mediaAtual > (menorValorTrava + 10.0)) {
+        menorValorTrava = mediaAtual;
     }
 }
 
