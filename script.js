@@ -12,7 +12,7 @@ let filtroHome = 'hoje';
 
 // Variáveis para o Filtro de Estabilidade
 let listaLeituras = [];
-const TAMANHO_FILTRO = 50; // Média das últimas 15 leituras para suavizar o sensor
+const TAMANHO_FILTRO = 50; 
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -42,7 +42,7 @@ function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
   if (litros !== undefined) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoAutomatico(litros); // Aciona o cálculo com filtro
+      processarConsumoAutomatico(litros); 
   }
 
   if (nivel <= 20) {
@@ -65,11 +65,11 @@ function atualizarInterface(nivel, litros) {
   }
 }
 
-// ===== LÓGICA DE CONSUMO COM FILTRO DE MÉDIA E ESTABILIDADE =====
+// ===== LÓGICA DE CONSUMO COM TRAVA DE VALOR MÍNIMO (PISO) =====
 function processarConsumoAutomatico(litrosAtuais) {
+    // Suavização inicial com média móvel
     listaLeituras.push(litrosAtuais);
     if (listaLeituras.length > TAMANHO_FILTRO) listaLeituras.shift();
-    
     const mediaAtual = listaLeituras.reduce((a, b) => a + b, 0) / listaLeituras.length;
 
     if (ultimoValorLitros === null) {
@@ -77,16 +77,19 @@ function processarConsumoAutomatico(litrosAtuais) {
         return;
     }
 
-    // AUMENTAMOS A MARGEM: Só aceita como gasto se cair mais de 10 litros
-    // Isso é necessário porque seu potenciômetro está pulando demais
-    if (mediaAtual < (ultimoValorLitros - 10.0)) { 
+    // Só registra gasto se a média cair abaixo da última trava (PISO)
+    // Margem de 1.5L para confirmar que não é apenas ruído
+    if (mediaAtual < (ultimoValorLitros - 1.5)) { 
         let gastoReal = ultimoValorLitros - mediaAtual;
         salvarGastoFirebase(gastoReal);
+        
+        // TRAVA: O novo valor de referência passa a ser o menor valor estável encontrado
         ultimoValorLitros = mediaAtual;
     } 
     
-    // Se subir (enchimento), ele acompanha o topo com uma margem de 5 litros
-    else if (mediaAtual > ultimoValorLitros + 5.0) {
+    // Se subir significativamente (ex: 10L), entendemos que a bomba ligou
+    // Isso "destrava" o valor anterior e fixa o novo topo
+    else if (mediaAtual > (ultimoValorLitros + 10.0)) {
         ultimoValorLitros = mediaAtual;
     }
 }
