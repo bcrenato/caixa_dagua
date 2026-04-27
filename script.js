@@ -10,6 +10,10 @@ let notificacaoEnviada = false;
 let ultimoValorLitros = null;
 let filtroHome = 'hoje';
 
+// Variáveis para o Filtro de Estabilidade
+let listaLeituras = [];
+const TAMANHO_FILTRO = 15; // Média das últimas 15 leituras para suavizar o sensor
+
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
   authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
@@ -26,7 +30,6 @@ const database = firebase.database();
 let nivelAtual = 0;
 let nivelDestino = 0;
 
-// Animação visual da água
 function animar() {
   nivelAtual += (nivelDestino - nivelAtual) * 0.1;
   water.style.height = (nivelAtual * AREA_UTIL / 100) + "%";
@@ -35,15 +38,13 @@ function animar() {
 }
 requestAnimationFrame(animar);
 
-// Lógica principal de atualização
 function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
   if (litros !== undefined) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoAutomatico(litros); // Calcula o gasto sozinho
+      processarConsumoAutomatico(litros); // Aciona o cálculo com filtro
   }
 
-  // Alertas
   if (nivel <= 20) {
     statusText.innerText = "CRÍTICO";
     alertaGrande.innerText = "⚠ LIGAR A BOMBA";
@@ -64,23 +65,31 @@ function atualizarInterface(nivel, litros) {
   }
 }
 
-// ===== CÁLCULO AUTOMÁTICO DE GASTO =====
+// ===== LÓGICA DE CONSUMO COM FILTRO DE MÉDIA E ESTABILIDADE =====
 function processarConsumoAutomatico(litrosAtuais) {
+    // Adiciona a leitura atual na lista para tirar a média
+    listaLeituras.push(litrosAtuais);
+    if (listaLeituras.length > TAMANHO_FILTRO) listaLeituras.shift();
+    
+    // Calcula a média móvel
+    const mediaAtual = listaLeituras.reduce((a, b) => a + b, 0) / listaLeituras.length;
+
     if (ultimoValorLitros === null) {
-        ultimoValorLitros = litrosAtuais;
+        ultimoValorLitros = mediaAtual;
         return;
     }
 
-    // Se o nível baixou, significa que houve consumo
-    if (litrosAtuais < ultimoValorLitros) {
-        let diferenca = ultimoValorLitros - litrosAtuais;
-        
-        // Pequeno filtro para ignorar oscilações menores que 0.5L
-        if (diferenca > 0.5) {
-            salvarGastoFirebase(diferenca);
-        }
+    // Só registra gasto se a média cair MAIS de 3 litros (margem de segurança)
+    if (mediaAtual < (ultimoValorLitros - 3.0)) {
+        let gastoReal = ultimoValorLitros - mediaAtual;
+        salvarGastoFirebase(gastoReal);
+        ultimoValorLitros = mediaAtual; // Trava no novo menor valor
+    } 
+    
+    // Se o nível subir (enchimento), acompanhamos o topo sem somar
+    else if (mediaAtual > ultimoValorLitros + 2.0) {
+        ultimoValorLitros = mediaAtual;
     }
-    ultimoValorLitros = litrosAtuais;
 }
 
 function salvarGastoFirebase(quantidade) {
@@ -92,11 +101,11 @@ function salvarGastoFirebase(quantidade) {
     });
 }
 
-// ===== FILTROS DA TELA INICIAL =====
 function mudarFiltroHome(tipo) {
     filtroHome = tipo;
     document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('active'));
-    document.getElementById('btn' + tipo.charAt(0).toUpperCase() + tipo.slice(1)).classList.add('active');
+    const btn = document.getElementById('btn' + tipo.charAt(0).toUpperCase() + tipo.slice(1));
+    if(btn) btn.classList.add('active');
     document.getElementById('labelGasto').innerText = "Gasto " + (tipo === 'hoje' ? 'Hoje' : tipo === 'semana' ? '7 Dias' : '30 Dias');
     atualizarDisplayGasto();
 }
@@ -121,8 +130,11 @@ function atualizarDisplayGasto() {
                 }
             });
         }
-        document.getElementById("totalLitrosHome").innerText = soma.toFixed(1) + " L";
-        document.getElementById("totalLitrosHome").style.color = soma > 500 ? "#ef4444" : "#22c55e";
+        const display = document.getElementById("totalLitrosHome");
+        if(display) {
+            display.innerText = soma.toFixed(1) + " L";
+            display.style.color = soma > 500 ? "#ef4444" : "#22c55e";
+        }
     });
 }
 
