@@ -10,9 +10,11 @@ let notificacaoEnviada = false;
 let ultimoValorLitros = null;
 let filtroHome = 'hoje';
 
-// Variáveis para o Filtro de Estabilidade
+// Variáveis para o Filtro de Estabilidade e Confirmação
 let listaLeituras = [];
-const TAMANHO_FILTRO = 50; 
+const TAMANHO_FILTRO = 100; // Filtro de média pesada para suavizar o sinal
+let contadorConfirmacao = 0;
+let possivelNovoPiso = null;
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -65,9 +67,9 @@ function atualizarInterface(nivel, litros) {
   }
 }
 
-// ===== LÓGICA DE CONSUMO COM TRAVA DE VALOR MÍNIMO (PISO) =====
+// ===== LÓGICA DE CONSUMO COM FILTRO DE BLOQUEIO DE RUÍDO =====
 function processarConsumoAutomatico(litrosAtuais) {
-    // Suavização inicial com média móvel
+    // 1. Média móvel pesada para ignorar picos rápidos do potenciômetro
     listaLeituras.push(litrosAtuais);
     if (listaLeituras.length > TAMANHO_FILTRO) listaLeituras.shift();
     const mediaAtual = listaLeituras.reduce((a, b) => a + b, 0) / listaLeituras.length;
@@ -77,20 +79,34 @@ function processarConsumoAutomatico(litrosAtuais) {
         return;
     }
 
-    // Só registra gasto se a média cair abaixo da última trava (PISO)
-    // Margem de 1.5L para confirmar que não é apenas ruído
-    if (mediaAtual < (ultimoValorLitros - 1.5)) { 
-        let gastoReal = ultimoValorLitros - mediaAtual;
-        salvarGastoFirebase(gastoReal);
-        
-        // TRAVA: O novo valor de referência passa a ser o menor valor estável encontrado
-        ultimoValorLitros = mediaAtual;
+    // 2. FILTRO DE CONFIRMAÇÃO: Só aceita se cair mais de 5L e ficar estável
+    if (mediaAtual < (ultimoValorLitros - 5.0)) {
+        // Verifica se o valor "parou" nesse novo patamar baixo
+        if (possivelNovoPiso === null || Math.abs(mediaAtual - possivelNovoPiso) > 2) {
+            possivelNovoPiso = mediaAtual;
+            contadorConfirmacao = 0;
+        } else {
+            contadorConfirmacao++;
+        }
+
+        // Se o valor ficar estável lá embaixo por 30 ciclos, confirmamos o gasto real
+        if (contadorConfirmacao > 30) {
+            let gastoReal = ultimoValorLitros - mediaAtual;
+            salvarGastoFirebase(gastoReal);
+            ultimoValorLitros = mediaAtual; // Trava o novo piso confirmado
+            contadorConfirmacao = 0;
+            possivelNovoPiso = null;
+        }
     } 
-    
-    // Se subir significativamente (ex: 10L), entendemos que a bomba ligou
-    // Isso "destrava" o valor anterior e fixa o novo topo
-    else if (mediaAtual > (ultimoValorLitros + 10.0)) {
+    // Reset da trava se o nível subir significativamente (ex: bomba ligou)
+    else if (mediaAtual > (ultimoValorLitros + 8.0)) {
         ultimoValorLitros = mediaAtual;
+        contadorConfirmacao = 0;
+        possivelNovoPiso = null;
+    } else {
+        // Se a oscilação for para cima ou o valor voltar ao topo, reseta o teste de gasto
+        contadorConfirmacao = 0;
+        possivelNovoPiso = null;
     }
 }
 
