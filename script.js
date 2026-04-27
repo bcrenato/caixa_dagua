@@ -7,12 +7,8 @@ const water = document.getElementById("water");
 // ===== CONFIGURAÇÕES =====
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
-let menorValorTrava = null; // A "catraca" que só aceita valores menores
+let ultimoValorEstavel = null; // Agora atua como a Trava de Menor Valor
 let filtroHome = 'hoje';
-
-// Variáveis para estabilizar o sensor
-let listaLeituras = [];
-const TAMANHO_FILTRO = 20; 
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -61,35 +57,36 @@ function atualizarInterface(nivel, litros) {
   } else {
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
-    if (nivel < 80) notificacaoEnviada = false;
+    if (nivel < 80) {
+        notificacaoEnviada = false;
+    }
   }
 }
 
-// ===== LÓGICA DE CONSUMO REFORMULADA (MENOR VALOR ESTÁVEL) =====
+// ===== LÓGICA DE HISTÓRICO AUTOMÁTICO POR TRAVA (ESTILO CATRACA) =====
 function processarConsumoAutomatico(litrosAtuais) {
-    // 1. Suaviza a leitura para ignorar picos rápidos
-    listaLeituras.push(litrosAtuais);
-    if (listaLeituras.length > TAMANHO_FILTRO) listaLeituras.shift();
-    const mediaAtual = listaLeituras.reduce((a, b) => a + b, 0) / listaLeituras.length;
-
-    if (menorValorTrava === null) {
-        menorValorTrava = mediaAtual;
+    // 1. Inicializa a trava na primeira leitura
+    if (ultimoValorEstavel === null) {
+        ultimoValorEstavel = litrosAtuais;
         return;
     }
 
-    // 2. Se a média baixar da trava atual (com margem de 1.5L para evitar o ruído)
-    if (mediaAtual < (menorValorTrava - 1.5)) {
-        let gastoReal = menorValorTrava - mediaAtual;
+    // 2. Se o valor atual for MENOR que a trava, houve gasto real
+    // Usamos uma margem de 0.5L para evitar gravar ruídos mínimos
+    if (litrosAtuais < (ultimoValorEstavel - 0.5)) {
+        let gastoConfirmado = ultimoValorEstavel - litrosAtuais;
         
-        // Só grava se o gasto for relevante
-        if (gastoReal > 0.5) {
-            salvarGastoFirebase(gastoReal);
-            menorValorTrava = mediaAtual; // Fixa o novo "piso"
-        }
+        // Grava no histórico automático
+        salvarGastoFirebase(gastoConfirmado);
+        
+        // O novo recorde de nível baixo vira a nova trava
+        ultimoValorEstavel = litrosAtuais;
     } 
-    // 3. Se a caixa encher (subir mais de 10L), atualizamos a trava para o novo topo
-    else if (mediaAtual > (menorValorTrava + 10.0)) {
-        menorValorTrava = mediaAtual;
+    
+    // 3. Se o nível subir (enchimento da caixa pela bomba)
+    // Se subir mais de 10L, destravamos a catraca para o novo topo da caixa
+    else if (litrosAtuais > (ultimoValorEstavel + 10.0)) {
+        ultimoValorEstavel = litrosAtuais;
     }
 }
 
