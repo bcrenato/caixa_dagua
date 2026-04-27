@@ -7,11 +7,12 @@ const water = document.getElementById("water");
 // ===== CONFIGURAÇÕES =====
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
-let menorValorTrava = null; 
+let ultimoValorEstavel = null; // Trava de segurança
 let filtroHome = 'hoje';
 
-// NOVA TRAVA DE SEGURANÇA
-let processandoGasto = false; 
+// Variáveis para Filtragem de Ruído
+let leiturasParaConfirmar = [];
+const LIMITE_CONFIRMACAO = 10; // Precisa de 10 leituras iguais para mudar
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -41,7 +42,7 @@ function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
   if (litros !== undefined) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoCatraca(litros); 
+      processarConsumoAutomatico(litros); // Função principal corrigida
   }
 
   if (nivel <= 20) {
@@ -60,38 +61,42 @@ function atualizarInterface(nivel, litros) {
   } else {
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
-    if (nivel < 80) notificacaoEnviada = false;
+    if (nivel < 80) {
+        notificacaoEnviada = false;
+    }
   }
 }
 
-// ===== LÓGICA DE CATRACA COM BLOQUEIO DE REPETIÇÃO =====
-function processarConsumoCatraca(litrosAtuais) {
-    if (menorValorTrava === null) {
-        menorValorTrava = litrosAtuais;
+// ===== NOVA LÓGICA DE HISTÓRICO AUTOMÁTICO COM FILTRO =====
+function processarConsumoAutomatico(litrosAtuais) {
+    if (ultimoValorEstavel === null) {
+        ultimoValorEstavel = litrosAtuais;
         return;
     }
 
-    // Se já estivermos processando um gasto, ignoramos novas leituras por um tempo
-    if (processandoGasto) return;
+    // Se o valor baixou mais de 3L, começamos a monitorar a estabilidade
+    if (litrosAtuais < (ultimoValorEstavel - 3.0)) {
+        leiturasParaConfirmar.push(litrosAtuais);
 
-    // A catraca só desce se o valor for menor que a trava menos uma margem de segurança (2L)
-    if (litrosAtuais < (menorValorTrava - 2.0)) {
-        processandoGasto = true; // Ativa a trava de segurança
-        
-        let diferencaGasto = menorValorTrava - litrosAtuais;
-        salvarGastoFirebase(diferencaGasto);
-        
-        menorValorTrava = litrosAtuais; // Atualiza a trava para o novo menor valor
-
-        // Libera a trava após 3 segundos para dar tempo do sensor estabilizar
-        setTimeout(() => {
-            processandoGasto = false;
-        }, 3000);
+        // Só grava no histórico se o valor ficar baixo por várias leituras
+        if (leiturasParaConfirmar.length >= LIMITE_CONFIRMACAO) {
+            let gastoConfirmado = ultimoValorEstavel - litrosAtuais;
+            
+            // Grava uma única vez no histórico automático
+            salvarGastoFirebase(gastoConfirmado);
+            
+            // Atualiza a trava para o novo valor
+            ultimoValorEstavel = litrosAtuais;
+            leiturasParaConfirmar = []; 
+        }
     } 
-    
-    // Se a caixa subir (encher), resetamos a catraca para o novo topo
-    else if (litrosAtuais > (menorValorTrava + 10.0)) {
-        menorValorTrava = litrosAtuais;
+    // Se o nível subir (enchente ou oscilação alta), reseta a trava
+    else if (litrosAtuais > (ultimoValorEstavel + 5.0)) {
+        ultimoValorEstavel = litrosAtuais;
+        leiturasParaConfirmar = [];
+    } else {
+        // Se o valor voltou ao normal, limpa a fila de confirmação
+        leiturasParaConfirmar = [];
     }
 }
 
