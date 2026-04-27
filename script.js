@@ -12,7 +12,7 @@ let filtroHome = 'hoje';
 
 // Variáveis para o Filtro de Estabilidade
 let listaLeituras = [];
-const TAMANHO_FILTRO = 15; // Média das últimas 15 leituras para suavizar o sensor
+const TAMANHO_FILTRO = 50; // Média das últimas 15 leituras para suavizar o sensor
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -67,11 +67,9 @@ function atualizarInterface(nivel, litros) {
 
 // ===== LÓGICA DE CONSUMO COM FILTRO DE MÉDIA E ESTABILIDADE =====
 function processarConsumoAutomatico(litrosAtuais) {
-    // Adiciona a leitura atual na lista para tirar a média
     listaLeituras.push(litrosAtuais);
     if (listaLeituras.length > TAMANHO_FILTRO) listaLeituras.shift();
     
-    // Calcula a média móvel
     const mediaAtual = listaLeituras.reduce((a, b) => a + b, 0) / listaLeituras.length;
 
     if (ultimoValorLitros === null) {
@@ -79,15 +77,16 @@ function processarConsumoAutomatico(litrosAtuais) {
         return;
     }
 
-    // Só registra gasto se a média cair MAIS de 3 litros (margem de segurança)
-    if (mediaAtual < (ultimoValorLitros - 1.5)) {
+    // AUMENTAMOS A MARGEM: Só aceita como gasto se cair mais de 10 litros
+    // Isso é necessário porque seu potenciômetro está pulando demais
+    if (mediaAtual < (ultimoValorLitros - 10.0)) { 
         let gastoReal = ultimoValorLitros - mediaAtual;
         salvarGastoFirebase(gastoReal);
-        ultimoValorLitros = mediaAtual; // Trava no novo menor valor
+        ultimoValorLitros = mediaAtual;
     } 
     
-    // Se o nível subir (enchimento), acompanhamos o topo sem somar
-    else if (mediaAtual > ultimoValorLitros + 2.0) {
+    // Se subir (enchimento), ele acompanha o topo com uma margem de 5 litros
+    else if (mediaAtual > ultimoValorLitros + 5.0) {
         ultimoValorLitros = mediaAtual;
     }
 }
