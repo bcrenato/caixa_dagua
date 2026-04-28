@@ -9,6 +9,9 @@ let notificacaoEnviada = false;
 let ultimoValorEstavel = null; 
 let filtroHome = 'hoje';
 
+let menorValorAtual = null;
+let ultimoValorValido = null;
+
 // --- TRAVA DE SEGURANÇA CONTRA REPETIÇÃO ---
 let ultimaGravacao = 0; // Armazena o tempo da última gravação
 
@@ -65,40 +68,44 @@ function atualizarInterface(nivel, litros) {
 
 // ===== LÓGICA DE CATRACA COM BLOQUEIO POR TEMPO =====
 function processarConsumoAutomatico(litrosAtuais) {
-    const agora = Date.now();
 
-    if (ultimoValorEstavel === null) {
-        ultimoValorEstavel = litrosAtuais;
+    if (ultimoValorValido === null) {
+        ultimoValorValido = litrosAtuais;
+        menorValorAtual = litrosAtuais;
         return;
     }
 
-    // Só entra se houver queda real de pelo menos 1.5L (para ignorar o ruído do sensor)
-    if (litrosAtuais < (ultimoValorEstavel - 1.5)) {
-        
-        // --- TRAVA CRÍTICA ---
-        // Se a última gravação foi há menos de 5 segundos, IGNORE.
-        if (agora - ultimaGravacao < 5000) return; 
+    // 🔼 IGNORA subida (ruído ou pequena reposição)
+    if (litrosAtuais > ultimoValorValido) {
+        ultimoValorValido = litrosAtuais;
+        return;
+    }
 
-        let gastoConfirmado = ultimoValorEstavel - litrosAtuais;
-        
-        salvarGastoFirebase(gastoConfirmado);
-        
-        ultimoValorEstavel = litrosAtuais; // Atualiza a trava
-        ultimaGravacao = agora; // Registra o tempo da gravação
-    } 
-    
-    // Se a caixa encher, apenas reseta a trava para o novo topo
-    else if (litrosAtuais > (ultimoValorEstavel + 10.0)) {
-        ultimoValorEstavel = litrosAtuais;
+    // 🔽 SÓ ACEITA NOVO MÍNIMO REAL (anti-oscilação)
+    if (litrosAtuais < (menorValorAtual - 2.0)) {
+
+        let consumo = menorValorAtual - litrosAtuais;
+
+        salvarGastoFirebase(consumo);
+
+        menorValorAtual = litrosAtuais;
+        ultimoValorValido = litrosAtuais;
+    }
+
+    // 🔄 RESET se caixa encher (subida grande)
+    else if (litrosAtuais > (menorValorAtual + 10.0)) {
+        menorValorAtual = litrosAtuais;
+        ultimoValorValido = litrosAtuais;
     }
 }
 
 function salvarGastoFirebase(quantidade) {
     const hoje = new Date().toLocaleDateString('pt-BR');
-    database.ref('historico_automatico').push({
-        data: hoje,
-        timestamp: Date.now(),
-        gasto: quantidade.toFixed(2)
+
+    const ref = database.ref('consumo_diario/' + hoje);
+
+    ref.transaction((valorAtual) => {
+        return (valorAtual || 0) + quantidade;
     });
 }
 
@@ -112,25 +119,32 @@ function mudarFiltroHome(tipo) {
 }
 
 function atualizarDisplayGasto() {
-    database.ref('historico_automatico').on('value', (snapshot) => {
+    database.ref('consumo_diario').on('value', (snapshot) => {
         const data = snapshot.val();
         let soma = 0;
-        const agora = Date.now();
-        const hoje = new Date().toLocaleDateString('pt-BR');
-        
-        let limiteMs = 0;
-        if (filtroHome === 'semana') limiteMs = 7 * 24 * 60 * 60 * 1000;
-        if (filtroHome === 'mes') limiteMs = 30 * 24 * 60 * 60 * 1000;
+        const hoje = new Date();
+        const hojeStr = hoje.toLocaleDateString('pt-BR');
 
         if (data) {
-            Object.values(data).forEach(item => {
-                if (filtroHome === 'hoje') {
-                    if (item.data === hoje) soma += parseFloat(item.gasto);
-                } else {
-                    if (agora - item.timestamp <= limiteMs) soma += parseFloat(item.gasto);
+            Object.entries(data).forEach(([dataStr, valor]) => {
+
+                const partes = dataStr.split('/');
+                const dataItem = new Date(partes[2], partes[1] - 1, partes[0]);
+
+                const diffDias = (hoje - dataItem) / (1000 * 60 * 60 * 24);
+
+                if (filtroHome === 'hoje' && dataStr === hojeStr) {
+                    soma += valor;
+                } 
+                else if (filtroHome === 'semana' && diffDias <= 7) {
+                    soma += valor;
+                } 
+                else if (filtroHome === 'mes' && diffDias <= 30) {
+                    soma += valor;
                 }
             });
         }
+
         const display = document.getElementById("totalLitrosHome");
         if(display) {
             display.innerText = soma.toFixed(1) + " L";
