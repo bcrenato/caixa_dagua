@@ -4,15 +4,11 @@ const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 const water = document.getElementById("water");
 
-// ===== CONFIGURAÇÕES =====
+// ===== CONFIGURAÇÕES DE TRAVA =====
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
+let ultimoValorTrava = null; // Memória do último nível estável
 let filtroHome = 'hoje';
-
-// Variáveis para a Trava de Piso Absoluto
-let ultimoValorGravadoNoBanco = null; 
-let listaLeituras = [];
-const TAMANHO_FILTRO = 30; // Média para suavizar o sinal do potenciômetro
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -40,11 +36,12 @@ requestAnimationFrame(animar);
 
 function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
-  if (litros !== undefined) {
+  if (litros !== undefined && litros > 0) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoUnico(litros); 
+      processarConsumoCatraca(litros); // Aciona a lógica de gravação
   }
 
+  // Alertas (Alexa / Telegram)
   if (nivel <= 20) {
     statusText.innerText = "CRÍTICO";
     alertaGrande.innerText = "⚠ LIGAR A BOMBA";
@@ -65,41 +62,37 @@ function atualizarInterface(nivel, litros) {
   }
 }
 
-// ===== LÓGICA DE PISO ABSOLUTO (SEM REPETIÇÃO) =====
-function processarConsumoUnico(litrosAtuais) {
-    // 1. Aplica média móvel para estabilizar a leitura
-    listaLeituras.push(litrosAtuais);
-    if (listaLeituras.length > TAMANHO_FILTRO) listaLeituras.shift();
-    const mediaAtual = listaLeituras.reduce((a, b) => a + b, 0) / listaLeituras.length;
-
-    if (ultimoValorGravadoNoBanco === null) {
-        ultimoValorGravadoNoBanco = mediaAtual;
+// ===== LÓGICA DE CATRACA (SÓ GRAVA SE CAIR) =====
+function processarConsumoCatraca(valorAtual) {
+    // Inicialização na primeira leitura
+    if (ultimoValorTrava === null) {
+        ultimoValorTrava = valorAtual;
+        console.log("Sistema iniciado. Trava definida em: " + ultimoValorTrava);
         return;
     }
 
-    // 2. REGRA: Só grava se a média atual for MENOR que o último registro (margem de 1L)
-    if (mediaAtual < (ultimoValorGravadoNoBanco - 1.0)) {
-        let gastoReal = ultimoValorGravadoNoBanco - mediaAtual;
+    // Se o valor atual for menor que a trava (com margem de 1 litro para ruído)
+    if (valorAtual < (ultimoValorTrava - 1.0)) {
+        let gasto = ultimoValorTrava - valorAtual;
         
-        salvarGastoFirebase(gastoReal);
-        
-        // Atualiza a trava: agora o novo "piso" é esse valor mais baixo
-        ultimoValorGravadoNoBanco = mediaAtual; 
+        // Grava no Firebase
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        database.ref('historico_automatico').push({
+            data: hoje,
+            timestamp: Date.now(),
+            gasto: gasto.toFixed(2)
+        });
+
+        // Atualiza a trava para o novo valor menor
+        ultimoValorTrava = valorAtual; 
+        console.log("Gasto registrado: " + gasto.toFixed(2) + "L. Nova trava: " + ultimoValorTrava);
     } 
     
-    // 3. RESET: Se a caixa subir (enchente), a trava acompanha o novo topo
-    else if (mediaAtual > (ultimoValorGravadoNoBanco + 10.0)) {
-        ultimoValorGravadoNoBanco = mediaAtual;
+    // Se a caixa encher (bomba ligou), a trava sobe junto
+    else if (valorAtual > (ultimoValorTrava + 10.0)) {
+        ultimoValorTrava = valorAtual;
+        console.log("Caixa enchendo. Reset da trava para: " + ultimoValorTrava);
     }
-}
-
-function salvarGastoFirebase(quantidade) {
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    database.ref('historico_automatico').push({
-        data: hoje,
-        timestamp: Date.now(),
-        gasto: quantidade.toFixed(2)
-    });
 }
 
 function mudarFiltroHome(tipo) {
@@ -139,10 +132,12 @@ function atualizarDisplayGasto() {
     });
 }
 
-// Inicialização
+// Conexão com Firebase
 database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
-    if (data) atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
+    if (data && data.nivel !== undefined) {
+        atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
+    }
 });
 atualizarDisplayGasto();
 
