@@ -4,16 +4,15 @@ const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 const water = document.getElementById("water");
 
+// ===== CONFIGURAÇÕES =====
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
-let ultimoValorEstavel = null; 
 let filtroHome = 'hoje';
 
-let menorValorAtual = null;
-let ultimoValorValido = null;
-
-// --- TRAVA DE SEGURANÇA CONTRA REPETIÇÃO ---
-let ultimaGravacao = 0; // Armazena o tempo da última gravação
+// Variáveis para a Trava de Piso Absoluto
+let ultimoValorGravadoNoBanco = null; 
+let listaLeituras = [];
+const TAMANHO_FILTRO = 30; // Média para suavizar o sinal do potenciômetro
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -43,7 +42,7 @@ function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
   if (litros !== undefined) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoAutomatico(litros); 
+      processarConsumoUnico(litros); 
   }
 
   if (nivel <= 20) {
@@ -66,46 +65,40 @@ function atualizarInterface(nivel, litros) {
   }
 }
 
-// ===== LÓGICA DE CATRACA COM BLOQUEIO POR TEMPO =====
-function processarConsumoAutomatico(litrosAtuais) {
+// ===== LÓGICA DE PISO ABSOLUTO (SEM REPETIÇÃO) =====
+function processarConsumoUnico(litrosAtuais) {
+    // 1. Aplica média móvel para estabilizar a leitura
+    listaLeituras.push(litrosAtuais);
+    if (listaLeituras.length > TAMANHO_FILTRO) listaLeituras.shift();
+    const mediaAtual = listaLeituras.reduce((a, b) => a + b, 0) / listaLeituras.length;
 
-    if (ultimoValorValido === null) {
-        ultimoValorValido = litrosAtuais;
-        menorValorAtual = litrosAtuais;
+    if (ultimoValorGravadoNoBanco === null) {
+        ultimoValorGravadoNoBanco = mediaAtual;
         return;
     }
 
-    // 🔼 IGNORA subida (ruído ou pequena reposição)
-    if (litrosAtuais > ultimoValorValido) {
-        ultimoValorValido = litrosAtuais;
-        return;
-    }
-
-    // 🔽 SÓ ACEITA NOVO MÍNIMO REAL (anti-oscilação)
-    if (litrosAtuais < (menorValorAtual - 2.0)) {
-
-        let consumo = menorValorAtual - litrosAtuais;
-
-        salvarGastoFirebase(consumo);
-
-        menorValorAtual = litrosAtuais;
-        ultimoValorValido = litrosAtuais;
-    }
-
-    // 🔄 RESET se caixa encher (subida grande)
-    else if (litrosAtuais > (menorValorAtual + 10.0)) {
-        menorValorAtual = litrosAtuais;
-        ultimoValorValido = litrosAtuais;
+    // 2. REGRA: Só grava se a média atual for MENOR que o último registro (margem de 1L)
+    if (mediaAtual < (ultimoValorGravadoNoBanco - 1.0)) {
+        let gastoReal = ultimoValorGravadoNoBanco - mediaAtual;
+        
+        salvarGastoFirebase(gastoReal);
+        
+        // Atualiza a trava: agora o novo "piso" é esse valor mais baixo
+        ultimoValorGravadoNoBanco = mediaAtual; 
+    } 
+    
+    // 3. RESET: Se a caixa subir (enchente), a trava acompanha o novo topo
+    else if (mediaAtual > (ultimoValorGravadoNoBanco + 10.0)) {
+        ultimoValorGravadoNoBanco = mediaAtual;
     }
 }
 
 function salvarGastoFirebase(quantidade) {
     const hoje = new Date().toLocaleDateString('pt-BR');
-
-    const ref = database.ref('consumo_diario/' + hoje);
-
-    ref.transaction((valorAtual) => {
-        return (valorAtual || 0) + quantidade;
+    database.ref('historico_automatico').push({
+        data: hoje,
+        timestamp: Date.now(),
+        gasto: quantidade.toFixed(2)
     });
 }
 
@@ -119,32 +112,25 @@ function mudarFiltroHome(tipo) {
 }
 
 function atualizarDisplayGasto() {
-    database.ref('consumo_diario').on('value', (snapshot) => {
+    database.ref('historico_automatico').on('value', (snapshot) => {
         const data = snapshot.val();
         let soma = 0;
-        const hoje = new Date();
-        const hojeStr = hoje.toLocaleDateString('pt-BR');
+        const agora = Date.now();
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        
+        let limiteMs = 0;
+        if (filtroHome === 'semana') limiteMs = 7 * 24 * 60 * 60 * 1000;
+        if (filtroHome === 'mes') limiteMs = 30 * 24 * 60 * 60 * 1000;
 
         if (data) {
-            Object.entries(data).forEach(([dataStr, valor]) => {
-
-                const partes = dataStr.split('/');
-                const dataItem = new Date(partes[2], partes[1] - 1, partes[0]);
-
-                const diffDias = (hoje - dataItem) / (1000 * 60 * 60 * 24);
-
-                if (filtroHome === 'hoje' && dataStr === hojeStr) {
-                    soma += valor;
-                } 
-                else if (filtroHome === 'semana' && diffDias <= 7) {
-                    soma += valor;
-                } 
-                else if (filtroHome === 'mes' && diffDias <= 30) {
-                    soma += valor;
+            Object.values(data).forEach(item => {
+                if (filtroHome === 'hoje') {
+                    if (item.data === hoje) soma += parseFloat(item.gasto);
+                } else {
+                    if (agora - item.timestamp <= limiteMs) soma += parseFloat(item.gasto);
                 }
             });
         }
-
         const display = document.getElementById("totalLitrosHome");
         if(display) {
             display.innerText = soma.toFixed(1) + " L";
@@ -153,6 +139,7 @@ function atualizarDisplayGasto() {
     });
 }
 
+// Inicialização
 database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
