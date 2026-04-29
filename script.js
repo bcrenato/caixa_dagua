@@ -4,11 +4,12 @@ const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 const water = document.getElementById("water");
 
-// ===== CONFIGURAÇÕES DE TRAVA =====
+// ===== CONFIGURAÇÕES DE TRAVA E FILTRO =====
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
-let ultimoValorTrava = null; // Memória do último nível estável
+let ultimoValorTrava = null; 
 let filtroHome = 'hoje';
+let processandoGasto = false; // Trava anti-repetição
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -38,10 +39,9 @@ function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
   if (litros !== undefined && litros > 0) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoCatraca(litros); // Aciona a lógica de gravação
+      processarConsumoCatraca(litros); // Aciona a lógica de gravação estável
   }
 
-  // Alertas (Alexa / Telegram)
   if (nivel <= 20) {
     statusText.innerText = "CRÍTICO";
     alertaGrande.innerText = "⚠ LIGAR A BOMBA";
@@ -62,17 +62,20 @@ function atualizarInterface(nivel, litros) {
   }
 }
 
-// ===== LÓGICA DE CATRACA (SÓ GRAVA SE CAIR) =====
+// ===== LÓGICA DE CONSUMO POR CATRACA COM TRAVA DE TEMPO =====
 function processarConsumoCatraca(valorAtual) {
-    // Inicialização na primeira leitura
     if (ultimoValorTrava === null) {
         ultimoValorTrava = valorAtual;
-        console.log("Sistema iniciado. Trava definida em: " + ultimoValorTrava);
         return;
     }
 
-    // Se o valor atual for menor que a trava (com margem de 1 litro para ruído)
-    if (valorAtual < (ultimoValorTrava - 1.0)) {
+    // Se já estivermos gravando um valor, ignora para evitar repetições
+    if (processandoGasto) return;
+
+    // Só grava se o valor atual for menor que a trava (margem de 1.5L para ruído)
+    if (valorAtual < (ultimoValorTrava - 1.5)) {
+        processandoGasto = true; // Ativa bloqueio de segurança
+        
         let gasto = ultimoValorTrava - valorAtual;
         
         // Grava no Firebase
@@ -83,15 +86,17 @@ function processarConsumoCatraca(valorAtual) {
             gasto: gasto.toFixed(2)
         });
 
-        // Atualiza a trava para o novo valor menor
-        ultimoValorTrava = valorAtual; 
-        console.log("Gasto registrado: " + gasto.toFixed(2) + "L. Nova trava: " + ultimoValorTrava);
+        ultimoValorTrava = valorAtual; // Fixa o novo piso
+
+        // Libera para nova gravação após 3 segundos (tempo para o sensor estabilizar)
+        setTimeout(() => {
+            processandoGasto = false;
+        }, 3000);
     } 
     
-    // Se a caixa encher (bomba ligou), a trava sobe junto
+    // Se a caixa encher (subir mais de 10L), a trava sobe para o novo topo
     else if (valorAtual > (ultimoValorTrava + 10.0)) {
         ultimoValorTrava = valorAtual;
-        console.log("Caixa enchendo. Reset da trava para: " + ultimoValorTrava);
     }
 }
 
@@ -132,7 +137,7 @@ function atualizarDisplayGasto() {
     });
 }
 
-// Conexão com Firebase
+// Conexão e Inicialização
 database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data && data.nivel !== undefined) {
