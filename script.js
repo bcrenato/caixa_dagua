@@ -6,8 +6,6 @@ const water = document.getElementById("water");
 
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
-let ultimoValorEstavel = null; 
-let ultimaGravacao = 0; 
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -38,58 +36,51 @@ function atualizarInterface(nivel, litros) {
   
   if (litros !== undefined) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoAutomatico(litros); 
   }
 
-  if (nivel <= 20) {
-    statusText.innerText = "CRÍTICO";
-    alertaGrande.innerText = "⚠ LIGAR A BOMBA";
+  // --- NOVA LÓGICA DE ALERTAS (NÃO GRAVA REGISTROS) ---
+
+  if (nivel <= 25) { // Nível Muito Crítico
+    statusText.innerText = "MUITO CRÍTICO";
+    alertaGrande.innerText = "🚨 PERIGO: CAIXA VAZIA!";
     alertaGrande.style.display = "block";
-  } else if (nivel >= 87) {
+    if (!notificacaoEnviada) {
+      enviarTelegram("🚨 MONITOR: Nível Muito Crítico! " + nivel.toFixed(1) + "%");
+      avisarAlexa("caixamuitocritica"); // Gatilho Alexa para 25%
+      notificacaoEnviada = true;
+    }
+  } 
+  else if (nivel <= 40) { // Ligar a Bomba
+    statusText.innerText = "LIGAR BOMBA";
+    alertaGrande.innerText = "⚠ ABAIXO DE 40%: LIGAR BOMBA";
+    alertaGrande.style.display = "block";
+    if (!notificacaoEnviada) {
+      enviarTelegram("⚠ MONITOR: Nível em 40%. Ligue a bomba!");
+      avisarAlexa("ligarbomba"); // Gatilho Alexa para 40%
+      notificacaoEnviada = true;
+    }
+  } 
+  else if (nivel >= 87) { // Caixa Cheia
     statusText.innerText = "Caixa Cheia";
     alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
     alertaGrande.style.display = "block";
     if (!notificacaoEnviada) {
-      enviarTelegram("🔔 MONITOR: Caixa Cheia! " + nivel.toFixed(1) + "%");
-      avisarAlexa();
+      enviarTelegram("🔔 MONITOR: Caixa Cheia Nilópolis! " + nivel.toFixed(1) + "%");
+      avisarAlexa("caixacheia"); // Gatilho Alexa para Cheio
       notificacaoEnviada = true;
     }
-  } else {
+  } 
+  else {
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
-    if (nivel < 80) notificacaoEnviada = false;
+    // Reseta o envio de notificações quando o nível volta para a faixa segura
+    if (nivel > 45 && nivel < 80) {
+        notificacaoEnviada = false;
+    }
   }
 }
 
-function processarConsumoAutomatico(litrosAtuais) {
-    const agora = Date.now();
-    if (ultimoValorEstavel === null) {
-        ultimoValorEstavel = litrosAtuais;
-        return;
-    }
-
-    // Grava se houver queda real > 2L e se passou 10 segundos da última gravação
-    if (litrosAtuais < (ultimoValorEstavel - 2.0)) {
-        if (agora - ultimaGravacao < 10000) return; 
-
-        let gasto = ultimoValorEstavel - litrosAtuais;
-        const hoje = new Date().toLocaleDateString('pt-BR');
-        
-        database.ref('historico_automatico').push({
-            data: hoje,
-            timestamp: agora,
-            gasto: gasto.toFixed(2)
-        });
-        
-        ultimoValorEstavel = litrosAtuais;
-        ultimaGravacao = agora;
-    } 
-    else if (litrosAtuais > (ultimoValorEstavel + 10.0)) {
-        ultimoValorEstavel = litrosAtuais;
-    }
-}
-
-// Ouvinte em Tempo Real do Firebase
+// OUVINTE EM TEMPO REAL (Focado apenas na Interface)
 database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data && data.nivel !== undefined) {
@@ -103,6 +94,7 @@ function enviarTelegram(msg) {
   fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${encodeURIComponent(msg)}`);
 }
 
-function avisarAlexa() {
-  fetch("https://api-v2.voicemonkey.io/trigger?token=9ed63e20213795a3af8393dcab767373_8ca1d0a8f948bcc2ce71d8eb5c58d622&device=caixacheia&monkey=caixacheia");
+function avisarAlexa(monkeyDevice) {
+  // O parâmetro monkeyDevice permite que você use sons diferentes para cada alerta
+  fetch(`https://api-v2.voicemonkey.io/trigger?token=9ed63e20213795a3af8393dcab767373_8ca1d0a8f948bcc2ce71d8eb5c58d622&device=${monkeyDevice}&monkey=${monkeyDevice}`);
 }
