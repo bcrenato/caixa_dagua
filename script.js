@@ -5,7 +5,7 @@ const statusText = document.getElementById("status");
 const water = document.getElementById("water");
 
 // --- NOVAS CONFIGURAÇÕES INTEGRADAS DO SCRIPT2 ---
-const MODO_SIMULACAO = true; // Mude para true para testar sem o sensor
+const MODO_SIMULACAO = false; // Mude para true para testar sem o sensor
 const R_BASE = 58.0;
 const R_TOPO = 75.5;
 const H_UTIL = 76.0;
