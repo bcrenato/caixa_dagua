@@ -45,7 +45,7 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.innerText = "🚨 PERIGO: CAIXA VAZIA!";
     alertaGrande.style.display = "block";
     if (!notificacaoEnviada) {
-      enviarTelegram("🚨 MONITOR: Nível Muito Crítico! " + nivel.toFixed(1) + "%");
+      enviarTelegram("🚨 Atenção: Nível Muito Crítico! " + nivel.toFixed(1) + "%""ligue a Bomba urgente);
       avisarAlexa("caixamuitocritica"); // Gatilho Alexa para 25%
       notificacaoEnviada = true;
     }
@@ -55,7 +55,7 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.innerText = "⚠ ABAIXO DE 40%: LIGAR BOMBA";
     alertaGrande.style.display = "block";
     if (!notificacaoEnviada) {
-      enviarTelegram("⚠ MONITOR: Nível em 40%. Ligue a bomba!");
+      enviarTelegram("⚠ Atenção : Nível em 40%. Ligue a bomba!");
       avisarAlexa("ligarbomba"); // Gatilho Alexa para 40%
       notificacaoEnviada = true;
     }
@@ -65,7 +65,7 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
     alertaGrande.style.display = "block";
     if (!notificacaoEnviada) {
-      enviarTelegram("🔔 MONITOR: Caixa Cheia Nilópolis! " + nivel.toFixed(1) + "%");
+      enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! " + nivel.toFixed(1) + "%"" Desligue a Bomba.");
       avisarAlexa("caixacheia"); // Gatilho Alexa para Cheio
       notificacaoEnviada = true;
     }
