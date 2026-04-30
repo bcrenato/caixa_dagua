@@ -1,63 +1,102 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Monitor Caixa D’Água</title>
-<link rel="stylesheet" href="style.css">
-<style>
-  .btn-filtro { background: #1e293b; color: #94a3b8; border: 1px solid #3b82f6; padding: 5px 10px; border-radius: 8px; font-size: 10px; cursor: pointer; transition: 0.3s; }
-  .btn-filtro.active { background: #3b82f6; color: white; }
-  
-  /* Estilo do botão de atalho restaurado */
-  .btn-navegacao { width: 100%; padding: 12px; background: #334155; color: white; border-radius: 12px; border: 1px solid #475569; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 13px; transition: 0.3s; }
-  .btn-navegacao:hover { background: #475569; }
-</style>
+  <meta charset="UTF-8">
+  <title>Monitor Caixa d'Água</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 15px;
+      margin: 10px;
+      border-radius: 10px;
+    }
+
+    .card-chart {
+      background: #1e293b;
+      padding: 15px;
+      margin: 10px;
+      border-radius: 10px;
+    }
+
+    #water {
+      width: 100%;
+      height: 0%;
+      background: linear-gradient(to top, #0077ff, #00c6ff);
+      transition: height 0.3s;
+    }
+
+    .tank {
+      width: 100%;
+      height: 200px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 250px !important;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="dashboard">
-  <div class="titulo-box" style="position: relative;">
-    <h2 class="titulo-principal">CAIXA D’ÁGUA</h2>
-    <p class="subtitulo">Marechal Castelo Branco</p>
-    <a href="config.html" style="position: absolute; right: 0; top: 0; text-decoration: none; font-size: 24px;">⚙️</a>
+<div class="container">
+
+  <h2>💧 Monitor Caixa d'Água</h2>
+
+  <div id="alertaGrande" class="card" style="display:none;"></div>
+
+  <!-- TANQUE -->
+  <div class="tank">
+    <div id="water"></div>
   </div>
 
-  <div class="card-tank">
-      <div class="tank">
-        <div class="water" id="water">
-            <div class="wave wave1"></div>
-            <div class="wave wave2"></div>
-        </div>
-        <div id="alertaGrande" class="alerta-grande"></div>
-        <img src="caixa.png" class="tank-img">
-        <div class="glass"></div>
-      </div>
-      <h1 id="percent">0%</h1>
-      <h2 id="litrosText" style="font-size: 22px; margin: 0; font-weight: bold; opacity: 0.9;">0 L</h2>
-      <p id="status">Normal</p>
+  <!-- STATUS -->
+  <div class="card">
+    <h3 id="percent">0%</h3>
+    <p id="status">Carregando...</p>
+    <h2 id="litrosText">0 L</h2>
   </div>
 
-  <button onclick="window.location.href='consumo.html'" class="btn-navegacao">
-    📊 DETALHES E HISTÓRICO DE GASTOS
-  </button>
-
-  <div class="card-chart" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #3b82f6; padding: 15px; margin-top: 15px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <h4 id="labelGasto" style="color: #94a3b8; margin: 0; font-size: 11px; text-transform: uppercase;">Gasto Hoje</h4>
-          <div style="display: flex; gap: 5px;">
-              <button class="btn-filtro active" id="btnHoje" onclick="mudarFiltroHome('hoje')">HOJE</button>
-              <button class="btn-filtro" id="btnSemana" onclick="mudarFiltroHome('semana')">7D</button>
-              <button class="btn-filtro" id="btnMes" onclick="mudarFiltroHome('mes')">30D</button>
-          </div>
-      </div>
-      <div id="totalLitrosHome" style="font-size: 36px; font-weight: bold; color: #22c55e; text-align: center; margin: 5px 0;">0.0 L</div>
-      <p style="font-size: 10px; color: #64748b; text-align: center; margin: 0;">Cálculo automático via sensor</p>
+  <!-- 💧 NOVO: GASTO HOJE -->
+  <div class="card">
+    <h3>💧 GASTO HOJE</h3>
+    <h1 id="gastoHoje">0 L</h1>
   </div>
+
+  <!-- 📊 NOVO: GRÁFICO -->
+  <div class="card-chart">
+    <h3>📊 Consumo dos dias</h3>
+    <canvas id="graficoConsumo"></canvas>
+  </div>
+
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<!-- Seu script -->
 <script src="script.js"></script>
 
 </body>
