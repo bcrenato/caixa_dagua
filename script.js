@@ -45,7 +45,7 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.innerText = "🚨 PERIGO: CAIXA VAZIA!";
     alertaGrande.style.display = "block";
     if (!notificacaoEnviada) {
-      enviarTelegram("🚨 Atenção: Nível Muito Crítico! " + nivel.toFixed(1) + "%""ligue a Bomba urgente);
+      enviarTelegram("🚨 Atenção: Nível Muito Crítico! " + nivel.toFixed(1) + "%""não abra os Registros de água);
       avisarAlexa("caixamuitocritica"); // Gatilho Alexa para 25%
       notificacaoEnviada = true;
     }
@@ -55,7 +55,7 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.innerText = "⚠ ABAIXO DE 40%: LIGAR BOMBA";
     alertaGrande.style.display = "block";
     if (!notificacaoEnviada) {
-      enviarTelegram("⚠ Atenção : Nível em 40%. Ligue a bomba!");
+      enviarTelegram("⚠ Atenção : Nível em 40%. Ligue a bomba urgente!");
       avisarAlexa("ligarbomba"); // Gatilho Alexa para 40%
       notificacaoEnviada = true;
     }
