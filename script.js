@@ -5,14 +5,19 @@ const statusText = document.getElementById("status");
 const water = document.getElementById("water");
 
 // --- NOVAS CONFIGURAÇÕES INTEGRADAS DO SCRIPT2 ---
-const MODO_SIMULACAO = false; // Mude para true para testar sem o sensor
+const MODO_SIMULACAO = true; // Mude para true para testar sem o sensor
 const R_BASE = 58.0;
 const R_TOPO = 75.5;
 const H_UTIL = 76.0;
 // ------------------------------------------------
 
 const AREA_UTIL = 49; 
-let notificacaoEnviada = false;
+
+// MODIFICAÇÃO: Criadas variáveis separadas para cada nível de alerta.
+// Isso impede que uma notificação bloqueie a outra.
+let notificacao25Enviada = false;
+let notificacao40Enviada = false;
+let notificacao87Enviada = false;
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -51,10 +56,13 @@ function atualizarInterface(nivel, litros) {
     statusText.innerText = "MUITO CRÍTICO";
     alertaGrande.innerText = "🚨 PERIGO: CAIXA VAZIA!";
     alertaGrande.style.display = "block";
-    if (!notificacaoEnviada) {
+    
+    // MODIFICAÇÃO: Checa a trava específica de 25%
+    if (!notificacao25Enviada) {
       enviarTelegram("🚨 Atenção: Nível Muito Crítico! " + nivel.toFixed(1) + "% - Não abra os Registros de água.");
       avisarAlexa("caixamuitocritica"); 
-      notificacaoEnviada = true;
+      notificacao25Enviada = true;
+      notificacao40Enviada = false; // Reseta o de 40 para caso o nível suba novamente
     }
   } 
   else if (nivel <= 40) { 
@@ -62,10 +70,14 @@ function atualizarInterface(nivel, litros) {
     statusText.innerText = "LIGAR BOMBA";
     alertaGrande.innerText = "⚠ ABAIXO DE 40%: LIGAR BOMBA";
     alertaGrande.style.display = "block";
-    if (!notificacaoEnviada) {
+    
+    // MODIFICAÇÃO: Checa a trava específica de 40%
+    if (!notificacao40Enviada) {
       enviarTelegram("⚠ Atenção: Nível em 40%. Ligue a bomba urgente!");
       avisarAlexa("ligarbomba"); 
-      notificacaoEnviada = true;
+      notificacao40Enviada = true;
+      notificacao25Enviada = false; // Reseta o de 25 para caso o nível continue caindo
+      notificacao87Enviada = false; 
     }
   } 
   else if (nivel >= 87) { 
@@ -73,18 +85,25 @@ function atualizarInterface(nivel, litros) {
     statusText.innerText = "Caixa Cheia";
     alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
     alertaGrande.style.display = "block";
-    if (!notificacaoEnviada) {
+    
+    // MODIFICAÇÃO: Checa a trava específica de 87%
+    if (!notificacao87Enviada) {
       enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! " + nivel.toFixed(1) + "% - Desligue a Bomba.");
       avisarAlexa("caixacheia"); 
-      notificacaoEnviada = true;
+      notificacao87Enviada = true;
+      notificacao40Enviada = false; // Permite avisar de 40% novamente quando a água baixar
     }
   } 
   else {
     if(water) water.style.background = "linear-gradient(to top, #0077ff, #00c6ff)"; // Azul
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
+    
+    // MODIFICAÇÃO: Reset de todas as travas quando o nível está na faixa de normalidade
     if (nivel > 45 && nivel < 80) {
-        notificacaoEnviada = false;
+        notificacao25Enviada = false;
+        notificacao40Enviada = false;
+        notificacao87Enviada = false;
     }
   }
 }
