@@ -46,7 +46,8 @@ function getDataHoje() {
 }
 
 const dataHoje = getDataHoje();
-const consumoRef = database.ref("consumo/" + dataHoje);
+let dataAtual = dataHoje;
+let consumoRef = database.ref("consumo/" + dataHoje);
 
 // ===== CARREGAR CONSUMO SALVO =====
 consumoRef.once("value").then(snapshot => {
@@ -226,3 +227,33 @@ function enviarTelegram(msg) {
 function avisarAlexa(monkeyDevice) {
   fetch(`https://api-v2.voicemonkey.io/trigger?token=SEU_TOKEN&device=${monkeyDevice}&monkey=${monkeyDevice}`);
 }
+
+setInterval(() => {
+  const novaData = getDataHoje();
+
+  if (novaData !== dataAtual) {
+    console.log("🔄 Novo dia detectado!");
+
+    dataAtual = novaData;
+
+    // 🧹 ZERA VARIÁVEIS
+    menorNivelHoje = null;
+    consumoHoje = 0;
+    atualizarConsumoHoje(0);
+
+    // 🔄 ATUALIZA FIREBASE
+    consumoRef = database.ref("consumo/" + novaData);
+
+    // 🔄 CARREGA DADOS DO NOVO DIA (se existir)
+    consumoRef.once("value").then(snapshot => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+
+        consumoHoje = data.total || 0;
+        menorNivelHoje = data.menorNivel || null;
+
+        atualizarConsumoHoje(consumoHoje);
+      }
+    });
+  }
+}, 60000); // verifica a cada 1 minuto
