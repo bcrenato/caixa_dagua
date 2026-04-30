@@ -4,12 +4,12 @@ const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 const water = document.getElementById("water");
 
-// ===== CONFIGURAÇÕES DE TRAVA E FILTRO =====
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
-let ultimoValorTrava = null; 
+let ultimoValorEstavel = null; 
 let filtroHome = 'hoje';
-let processandoGasto = false; // Trava anti-repetição
+
+let ultimaGravacao = 0; 
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -24,24 +24,28 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-let nivelAtual = 0;
+let nivelAtualAnim = 0;
 let nivelDestino = 0;
 
 function animar() {
-  nivelAtual += (nivelDestino - nivelAtual) * 0.1;
-  water.style.height = (nivelAtual * AREA_UTIL / 100) + "%";
-  percent.innerText = nivelAtual.toFixed(1) + "%";
+  // Interpolação para suavizar o movimento em tempo real
+  nivelAtualAnim += (nivelDestino - nivelAtualAnim) * 0.1;
+  water.style.height = (nivelAtualAnim * AREA_UTIL / 100) + "%";
+  percent.innerText = nivelAtualAnim.toFixed(1) + "%";
   requestAnimationFrame(animar);
 }
 requestAnimationFrame(animar);
 
 function atualizarInterface(nivel, litros) {
-  nivelDestino = nivel;
-  if (litros !== undefined && litros > 0) {
+  nivelDestino = nivel; // Atualiza o destino da animação imediatamente
+  
+  if (litros !== undefined) {
       litrosText.innerText = Math.round(litros) + " L";
-      processarConsumoCatraca(litros); // Aciona a lógica de gravação estável
+      // O processamento do histórico ocorre em "segundo plano"
+      processarConsumoAutomatico(litros); 
   }
 
+  // Lógica de Alertas
   if (nivel <= 20) {
     statusText.innerText = "CRÍTICO";
     alertaGrande.innerText = "⚠ LIGAR A BOMBA";
@@ -62,42 +66,36 @@ function atualizarInterface(nivel, litros) {
   }
 }
 
-// ===== LÓGICA DE CONSUMO POR CATRACA COM TRAVA DE TEMPO =====
-function processarConsumoCatraca(valorAtual) {
-    if (ultimoValorTrava === null) {
-        ultimoValorTrava = valorAtual;
+function processarConsumoAutomatico(litrosAtuais) {
+    const agora = Date.now();
+
+    if (ultimoValorEstavel === null) {
+        ultimoValorEstavel = litrosAtuais;
         return;
     }
 
-    // Se já estivermos gravando um valor, ignora para evitar repetições
-    if (processandoGasto) return;
+    // Só entra se houver queda real de pelo menos 1.5L
+    if (litrosAtuais < (ultimoValorEstavel - 1.5)) {
+        if (agora - ultimaGravacao < 5000) return; 
 
-    // Só grava se o valor atual for menor que a trava (margem de 1.5L para ruído)
-    if (valorAtual < (ultimoValorTrava - 1.5)) {
-        processandoGasto = true; // Ativa bloqueio de segurança
+        let gastoConfirmado = ultimoValorEstavel - litrosAtuais;
+        salvarGastoFirebase(gastoConfirmado);
         
-        let gasto = ultimoValorTrava - valorAtual;
-        
-        // Grava no Firebase
-        const hoje = new Date().toLocaleDateString('pt-BR');
-        database.ref('historico_automatico').push({
-            data: hoje,
-            timestamp: Date.now(),
-            gasto: gasto.toFixed(2)
-        });
-
-        ultimoValorTrava = valorAtual; // Fixa o novo piso
-
-        // Libera para nova gravação após 3 segundos (tempo para o sensor estabilizar)
-        setTimeout(() => {
-            processandoGasto = false;
-        }, 3000);
+        ultimoValorEstavel = litrosAtuais;
+        ultimaGravacao = agora;
     } 
-    
-    // Se a caixa encher (subir mais de 10L), a trava sobe para o novo topo
-    else if (valorAtual > (ultimoValorTrava + 10.0)) {
-        ultimoValorTrava = valorAtual;
+    else if (litrosAtuais > (ultimoValorEstavel + 10.0)) {
+        ultimoValorEstavel = litrosAtuais;
     }
+}
+
+function salvarGastoFirebase(quantidade) {
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    database.ref('historico_automatico').push({
+        data: hoje,
+        timestamp: Date.now(),
+        gasto: quantidade.toFixed(2)
+    });
 }
 
 function mudarFiltroHome(tipo) {
@@ -137,13 +135,14 @@ function atualizarDisplayGasto() {
     });
 }
 
-// Conexão e Inicialização
+// OUVINTE EM TEMPO REAL: É aqui que a mágica do tempo real acontece
 database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data && data.nivel !== undefined) {
         atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
     }
 });
+
 atualizarDisplayGasto();
 
 function enviarTelegram(msg) {
