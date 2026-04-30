@@ -42,7 +42,13 @@ let nivelAtualAnim = 0;
 
 // ===== DATA HOJE =====
 function getDataHoje() {
-  return new Date().toISOString().slice(0, 10);
+  const hoje = new Date();
+
+  const ano = hoje.getFullYear();
+  const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+  const dia = String(hoje.getDate()).padStart(2, "0");
+
+  return `${ano}-${mes}-${dia}`;
 }
 
 const dataHoje = getDataHoje();
@@ -231,7 +237,7 @@ function avisarAlexa(monkeyDevice) {
 setInterval(() => {
   const novaData = getDataHoje();
 
-  if (novaData !== dataAtual) {
+  if (novaData !== dataAtual && document.visibilityState === "visible") {
     console.log("🔄 Novo dia detectado!");
 
     dataAtual = novaData;
