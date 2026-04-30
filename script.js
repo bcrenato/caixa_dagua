@@ -7,8 +7,6 @@ const water = document.getElementById("water");
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
 let ultimoValorEstavel = null; 
-let filtroHome = 'hoje';
-
 let ultimaGravacao = 0; 
 
 const firebaseConfig = {
@@ -24,11 +22,10 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-let nivelAtualAnim = 0;
 let nivelDestino = 0;
+let nivelAtualAnim = 0;
 
 function animar() {
-  // Interpolação para suavizar o movimento em tempo real
   nivelAtualAnim += (nivelDestino - nivelAtualAnim) * 0.1;
   water.style.height = (nivelAtualAnim * AREA_UTIL / 100) + "%";
   percent.innerText = nivelAtualAnim.toFixed(1) + "%";
@@ -37,15 +34,13 @@ function animar() {
 requestAnimationFrame(animar);
 
 function atualizarInterface(nivel, litros) {
-  nivelDestino = nivel; // Atualiza o destino da animação imediatamente
+  nivelDestino = nivel;
   
   if (litros !== undefined) {
       litrosText.innerText = Math.round(litros) + " L";
-      // O processamento do histórico ocorre em "segundo plano"
       processarConsumoAutomatico(litros); 
   }
 
-  // Lógica de Alertas
   if (nivel <= 20) {
     statusText.innerText = "CRÍTICO";
     alertaGrande.innerText = "⚠ LIGAR A BOMBA";
@@ -55,7 +50,7 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
     alertaGrande.style.display = "block";
     if (!notificacaoEnviada) {
-      enviarTelegram("🔔 MONITOR: Caixa Cheia em Nilópolis! " + nivel.toFixed(1) + "%");
+      enviarTelegram("🔔 MONITOR: Caixa Cheia! " + nivel.toFixed(1) + "%");
       avisarAlexa();
       notificacaoEnviada = true;
     }
@@ -68,18 +63,23 @@ function atualizarInterface(nivel, litros) {
 
 function processarConsumoAutomatico(litrosAtuais) {
     const agora = Date.now();
-
     if (ultimoValorEstavel === null) {
         ultimoValorEstavel = litrosAtuais;
         return;
     }
 
-    // Só entra se houver queda real de pelo menos 1.5L
-    if (litrosAtuais < (ultimoValorEstavel - 1.5)) {
-        if (agora - ultimaGravacao < 5000) return; 
+    // Grava se houver queda real > 2L e se passou 10 segundos da última gravação
+    if (litrosAtuais < (ultimoValorEstavel - 2.0)) {
+        if (agora - ultimaGravacao < 10000) return; 
 
-        let gastoConfirmado = ultimoValorEstavel - litrosAtuais;
-        salvarGastoFirebase(gastoConfirmado);
+        let gasto = ultimoValorEstavel - litrosAtuais;
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        
+        database.ref('historico_automatico').push({
+            data: hoje,
+            timestamp: agora,
+            gasto: gasto.toFixed(2)
+        });
         
         ultimoValorEstavel = litrosAtuais;
         ultimaGravacao = agora;
@@ -89,61 +89,13 @@ function processarConsumoAutomatico(litrosAtuais) {
     }
 }
 
-function salvarGastoFirebase(quantidade) {
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    database.ref('historico_automatico').push({
-        data: hoje,
-        timestamp: Date.now(),
-        gasto: quantidade.toFixed(2)
-    });
-}
-
-function mudarFiltroHome(tipo) {
-    filtroHome = tipo;
-    document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('active'));
-    const btn = document.getElementById('btn' + tipo.charAt(0).toUpperCase() + tipo.slice(1));
-    if(btn) btn.classList.add('active');
-    document.getElementById('labelGasto').innerText = "Gasto " + (tipo === 'hoje' ? 'Hoje' : tipo === 'semana' ? '7 Dias' : '30 Dias');
-    atualizarDisplayGasto();
-}
-
-function atualizarDisplayGasto() {
-    database.ref('historico_automatico').on('value', (snapshot) => {
-        const data = snapshot.val();
-        let soma = 0;
-        const agora = Date.now();
-        const hoje = new Date().toLocaleDateString('pt-BR');
-        
-        let limiteMs = 0;
-        if (filtroHome === 'semana') limiteMs = 7 * 24 * 60 * 60 * 1000;
-        if (filtroHome === 'mes') limiteMs = 30 * 24 * 60 * 60 * 1000;
-
-        if (data) {
-            Object.values(data).forEach(item => {
-                if (filtroHome === 'hoje') {
-                    if (item.data === hoje) soma += parseFloat(item.gasto);
-                } else {
-                    if (agora - item.timestamp <= limiteMs) soma += parseFloat(item.gasto);
-                }
-            });
-        }
-        const display = document.getElementById("totalLitrosHome");
-        if(display) {
-            display.innerText = soma.toFixed(1) + " L";
-            display.style.color = soma > 500 ? "#ef4444" : "#22c55e";
-        }
-    });
-}
-
-// OUVINTE EM TEMPO REAL: É aqui que a mágica do tempo real acontece
+// Ouvinte em Tempo Real do Firebase
 database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data && data.nivel !== undefined) {
         atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
     }
 });
-
-atualizarDisplayGasto();
 
 function enviarTelegram(msg) {
   const token = "8533439908:AAFtykn10UsOEz_NTMPU6pFcptyg0KlYpeI";
