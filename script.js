@@ -4,6 +4,13 @@ const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 const water = document.getElementById("water");
 
+// --- NOVAS CONFIGURAÇÕES INTEGRADAS DO SCRIPT2 ---
+const MODO_SIMULACAO = true; // Mude para true para testar sem o sensor
+const R_BASE = 58.0;
+const R_TOPO = 75.5;
+const H_UTIL = 76.0;
+// ------------------------------------------------
+
 const AREA_UTIL = 49; 
 let notificacaoEnviada = false;
 
@@ -38,9 +45,9 @@ function atualizarInterface(nivel, litros) {
       litrosText.innerText = Math.round(litros) + " L";
   }
 
-  // --- LÓGICA DE ALERTAS CORRIGIDA ---
-
+  // --- LÓGICA DE CORES DINÂMICAS DO SCRIPT2 ---
   if (nivel <= 25) { 
+    if(water) water.style.background = "linear-gradient(to top, #ff0000, #ff4d4d)"; // Vermelho
     statusText.innerText = "MUITO CRÍTICO";
     alertaGrande.innerText = "🚨 PERIGO: CAIXA VAZIA!";
     alertaGrande.style.display = "block";
@@ -51,6 +58,7 @@ function atualizarInterface(nivel, litros) {
     }
   } 
   else if (nivel <= 40) { 
+    if(water) water.style.background = "linear-gradient(to top, #ff7b00, #ffc107)"; // Amarelo/Laranja
     statusText.innerText = "LIGAR BOMBA";
     alertaGrande.innerText = "⚠ ABAIXO DE 40%: LIGAR BOMBA";
     alertaGrande.style.display = "block";
@@ -61,6 +69,7 @@ function atualizarInterface(nivel, litros) {
     }
   } 
   else if (nivel >= 87) { 
+    if(water) water.style.background = "linear-gradient(to top, #0077ff, #00c6ff)"; // Azul
     statusText.innerText = "Caixa Cheia";
     alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
     alertaGrande.style.display = "block";
@@ -71,6 +80,7 @@ function atualizarInterface(nivel, litros) {
     }
   } 
   else {
+    if(water) water.style.background = "linear-gradient(to top, #0077ff, #00c6ff)"; // Azul
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
     if (nivel > 45 && nivel < 80) {
@@ -79,13 +89,37 @@ function atualizarInterface(nivel, litros) {
   }
 }
 
-// OUVINTE EM TEMPO REAL
-database.ref('/').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data && data.nivel !== undefined) {
-        atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
-    }
-});
+// ===== LÓGICA DE SIMULAÇÃO (DO SCRIPT2) =====
+if (MODO_SIMULACAO) {
+  let subindo = true;
+  let simNivel = 50;
+
+  setInterval(() => {
+    if (subindo) simNivel += 0.5;
+    else simNivel -= 0.5;
+
+    if (simNivel >= 100) subindo = false;
+    if (simNivel <= 5) subindo = true;
+
+    // FÓRMULA TRONCO DE CONE INTEGRADA
+    const h = (simNivel / 100) * H_UTIL;
+    const raioAt = R_BASE + (R_TOPO - R_BASE) * (h / H_UTIL);
+    const vol_cm3 = (3.14159 * h / 3.0) * (Math.pow(raioAt, 2) + (raioAt * R_BASE) + Math.pow(R_BASE, 2));
+    const litrosSimulados = vol_cm3 / 1000.0;
+
+    atualizarInterface(simNivel, litrosSimulados);
+  }, 500); 
+}
+
+// OUVINTE EM TEMPO REAL (SÓ ATIVA SE NÃO ESTIVER SIMULANDO)
+if (!MODO_SIMULACAO) {
+    database.ref('/').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.nivel !== undefined) {
+            atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
+        }
+    });
+}
 
 function enviarTelegram(msg) {
   const token = "8533439908:AAFtykn10UsOEz_NTMPU6pFcptyg0KlYpeI";
