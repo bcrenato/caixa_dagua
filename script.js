@@ -25,8 +25,8 @@ let nivelAtualAnim = 0;
 
 function animar() {
   nivelAtualAnim += (nivelDestino - nivelAtualAnim) * 0.1;
-  water.style.height = (nivelAtualAnim * AREA_UTIL / 100) + "%";
-  percent.innerText = nivelAtualAnim.toFixed(1) + "%";
+  if(water) water.style.height = (nivelAtualAnim * AREA_UTIL / 100) + "%";
+  if(percent) percent.innerText = nivelAtualAnim.toFixed(1) + "%";
   requestAnimationFrame(animar);
 }
 requestAnimationFrame(animar);
@@ -34,53 +34,52 @@ requestAnimationFrame(animar);
 function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
   
-  if (litros !== undefined) {
+  if (litros !== undefined && litrosText) {
       litrosText.innerText = Math.round(litros) + " L";
   }
 
-  // --- NOVA LÓGICA DE ALERTAS (NÃO GRAVA REGISTROS) ---
+  // --- LÓGICA DE ALERTAS CORRIGIDA ---
 
-  if (nivel <= 25) { // Nível Muito Crítico
+  if (nivel <= 25) { 
     statusText.innerText = "MUITO CRÍTICO";
     alertaGrande.innerText = "🚨 PERIGO: CAIXA VAZIA!";
     alertaGrande.style.display = "block";
     if (!notificacaoEnviada) {
-      enviarTelegram("🚨 Atenção: Nível Muito Crítico! " + nivel.toFixed(1) + "%""não abra os Registros de água);
-      avisarAlexa("caixamuitocritica"); // Gatilho Alexa para 25%
+      enviarTelegram("🚨 Atenção: Nível Muito Crítico! " + nivel.toFixed(1) + "% - Não abra os Registros de água.");
+      avisarAlexa("caixamuitocritica"); 
       notificacaoEnviada = true;
     }
   } 
-  else if (nivel <= 40) { // Ligar a Bomba
+  else if (nivel <= 40) { 
     statusText.innerText = "LIGAR BOMBA";
     alertaGrande.innerText = "⚠ ABAIXO DE 40%: LIGAR BOMBA";
     alertaGrande.style.display = "block";
     if (!notificacaoEnviada) {
-      enviarTelegram("⚠ Atenção : Nível em 40%. Ligue a bomba urgente!");
-      avisarAlexa("ligarbomba"); // Gatilho Alexa para 40%
+      enviarTelegram("⚠ Atenção: Nível em 40%. Ligue a bomba urgente!");
+      avisarAlexa("ligarbomba"); 
       notificacaoEnviada = true;
     }
   } 
-  else if (nivel >= 87) { // Caixa Cheia
+  else if (nivel >= 87) { 
     statusText.innerText = "Caixa Cheia";
     alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
     alertaGrande.style.display = "block";
     if (!notificacaoEnviada) {
-      enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! " + nivel.toFixed(1) + "%"" Desligue a Bomba.");
-      avisarAlexa("caixacheia"); // Gatilho Alexa para Cheio
+      enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! " + nivel.toFixed(1) + "% - Desligue a Bomba.");
+      avisarAlexa("caixacheia"); 
       notificacaoEnviada = true;
     }
   } 
   else {
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
-    // Reseta o envio de notificações quando o nível volta para a faixa segura
     if (nivel > 45 && nivel < 80) {
         notificacaoEnviada = false;
     }
   }
 }
 
-// OUVINTE EM TEMPO REAL (Focado apenas na Interface)
+// OUVINTE EM TEMPO REAL
 database.ref('/').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data && data.nivel !== undefined) {
@@ -95,6 +94,5 @@ function enviarTelegram(msg) {
 }
 
 function avisarAlexa(monkeyDevice) {
-  // O parâmetro monkeyDevice permite que você use sons diferentes para cada alerta
   fetch(`https://api-v2.voicemonkey.io/trigger?token=9ed63e20213795a3af8393dcab767373_8ca1d0a8f948bcc2ce71d8eb5c58d622&device=${monkeyDevice}&monkey=${monkeyDevice}`);
 }
