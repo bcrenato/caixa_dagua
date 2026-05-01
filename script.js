@@ -142,19 +142,27 @@ function atualizarInterface(nivel, litros) {
 function processarConsumo(litrosAtual) {
   if (litrosAtual === undefined || litrosAtual === null) return;
 
+  // 🚨 proteção básica
+  if (litrosAtual > 1100 || litrosAtual < 0) return;
+
   if (menorNivelHoje === null) {
     menorNivelHoje = litrosAtual;
     return;
   }
 
-  if (litrosAtual < (menorNivelHoje - LIMIAR)) {
+  // 🔥 SEMPRE atualiza se for menor (independente do limiar)
+  if (litrosAtual < menorNivelHoje) {
 
     const diferenca = menorNivelHoje - litrosAtual;
 
-    consumoHoje += diferenca;
-    menorNivelHoje = litrosAtual;
+    // só soma se passar do limiar (anti ruído)
+    if (diferenca > LIMIAR) {
+      consumoHoje += diferenca;
+      atualizarConsumoHoje(consumoHoje);
+    }
 
-    atualizarConsumoHoje(consumoHoje);
+    // 👇 ESSENCIAL: sempre atualiza o menor nível
+    menorNivelHoje = litrosAtual;
 
     consumoRef.set({
       total: parseFloat(consumoHoje.toFixed(2)),
