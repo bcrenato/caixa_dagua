@@ -1,6 +1,6 @@
 {
   "name": "Meu App",
-  "short_name": "App",
+  "short_name": "Monitoramento de Água",
 
   "start_url": "./index.html",
   "scope": "/caixa_dagua/",
