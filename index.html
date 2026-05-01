@@ -30,7 +30,14 @@
   <div class="titulo-box" style="position: relative;">
     <h2 class="titulo-principal">CAIXA D’ÁGUA</h2>
     <p class="subtitulo">Marechal Castelo Branco</p>
-    <a href="config.html" style="position: absolute; right: 0; top: 0; text-decoration: none; font-size: 24px;">⚙️</a>
+<a href="#" onclick="irConfig()" style="position: absolute; right: 0; top: 0; text-decoration: none; font-size: 24px;">⚙️</a>
+
+<script>
+function irConfig() {
+  window.location.href = "./config.html";
+}
+</script>
+  
   </div>
 
   <div class="card-tank">
@@ -48,7 +55,7 @@
       <p id="status">Normal</p>
   </div>
 
-  <button onclick="window.location.href='consumo.html'" class="btn-navegacao">
+  <button onclick="window.location.href='./consumo.html'" class="btn-navegacao">
     📊 DETALHES E HISTÓRICO DE GASTOS
   </button>
 
