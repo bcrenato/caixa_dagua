@@ -2,8 +2,8 @@
   "name": "Meu App",
   "short_name": "App",
 
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/caixa_dagua/",
+  "scope": "/caixa_dagua/",
 
   "display": "standalone",
 
