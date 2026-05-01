@@ -3,7 +3,7 @@
   "short_name": "App",
 
   "start_url": "/caixa_dagua/index.html",
-  "scope": "./caixa_dagua/",
+  "scope": "/caixa_dagua/",
 
   "display": "standalone",
 
