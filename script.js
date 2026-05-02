@@ -3,6 +3,8 @@ const litrosText = document.getElementById("litrosText");
 const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 const water = document.getElementById("water");
+const MAX_QUEDA_POR_LEITURA = 50; // ajuste (ex: 50L)
+
 
 // ===== NOVO: GASTO HOJE =====
 let menorNivelHoje = null;
@@ -142,7 +144,6 @@ function atualizarInterface(nivel, litros) {
 function processarConsumo(litrosAtual) {
   if (litrosAtual === undefined || litrosAtual === null) return;
 
-  // 🚨 proteção básica
   if (litrosAtual > 1100 || litrosAtual < 0) return;
 
   if (menorNivelHoje === null) {
@@ -150,18 +151,22 @@ function processarConsumo(litrosAtual) {
     return;
   }
 
-  // 🔥 SEMPRE atualiza se for menor (independente do limiar)
   if (litrosAtual < menorNivelHoje) {
 
     const diferenca = menorNivelHoje - litrosAtual;
 
-    // só soma se passar do limiar (anti ruído)
+    // 🚨 BLOQUEIA QUEDA IRREAL
+    if (diferenca > MAX_QUEDA_POR_LEITURA) {
+      console.warn("⚠️ Queda ignorada (possível erro sensor):", diferenca);
+      return;
+    }
+
+    // só soma se for consumo real
     if (diferenca > LIMIAR) {
       consumoHoje += diferenca;
       atualizarConsumoHoje(consumoHoje);
     }
 
-    // 👇 ESSENCIAL: sempre atualiza o menor nível
     menorNivelHoje = litrosAtual;
 
     consumoRef.set({
