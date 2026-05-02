@@ -8,6 +8,8 @@ const MAX_QUEDA_POR_LEITURA = 60; // ajuste (ex: 50L)
 
 // ===== NOVO: GASTO HOJE =====
 let menorNivelHoje = null;
+let ultimoLitros = null;
+let tempoUltimaLeitura = Date.now();
 let consumoHoje = 0;
 const LIMIAR = 0.5;
 
@@ -145,6 +147,28 @@ function processarConsumo(litrosAtual) {
   if (litrosAtual === undefined || litrosAtual === null) return;
 
   if (litrosAtual > 1100 || litrosAtual < 0) return;
+
+
+  
+const agora = Date.now();
+
+if (ultimoLitros !== null) {
+  const diferenca = Math.abs(litrosAtual - ultimoLitros);
+
+  // variação absurda em pouco tempo = erro
+  if (diferenca > 100 && (agora - tempoUltimaLeitura < 5000)) {
+    console.warn("⚠️ Leitura descartada (instável)");
+    return;
+  }
+}
+
+ultimoLitros = litrosAtual;
+tempoUltimaLeitura = agora;
+
+
+  
+
+  
 
   if (menorNivelHoje === null) {
     menorNivelHoje = litrosAtual;
