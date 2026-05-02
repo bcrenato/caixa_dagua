@@ -3,7 +3,7 @@ const litrosText = document.getElementById("litrosText");
 const percent = document.getElementById("percent");
 const statusText = document.getElementById("status");
 const water = document.getElementById("water");
-const MAX_QUEDA_POR_LEITURA = 50; // ajuste (ex: 50L)
+const MAX_QUEDA_POR_LEITURA = 60; // ajuste (ex: 50L)
 
 
 // ===== NOVO: GASTO HOJE =====
