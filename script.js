@@ -29,7 +29,7 @@ let notificacao40Enviada = false;
 let notificacao87Enviada = false;
 
 const firebaseConfig = {
-  apiKey: "AIzaSy...",
+  apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
   authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
   databaseURL: "https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com",
   projectId: "monitor-caixa-agua-ff63a",
@@ -264,11 +264,14 @@ escutarGraficoTempoReal();
 
 // ===== APIs =====
 function enviarTelegram(msg) {
-  fetch(`https://api.telegram.org/botSEU_TOKEN/sendMessage?chat_id=SEU_CHAT&text=${encodeURIComponent(msg)}`);
+  const token = "8533439908:AAFtykn10UsOEz_NTMPU6pFcptyg0KlYpeI";
+  const chat = "554870921";
+  fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${encodeURIComponent(msg)}`);
 }
 
 function avisarAlexa(monkeyDevice) {
-  fetch(`https://api-v2.voicemonkey.io/trigger?token=SEU_TOKEN&device=${monkeyDevice}&monkey=${monkeyDevice}`);
+  const token = "9ed63e20213795a3af8393dcab767373_8ca1d0a8f948bcc2ce71d8eb5c58d622";
+  fetch(`https://api-v2.voicemonkey.io/trigger?token=${token}&device=${monkeyDevice}&monkey=${monkeyDevice}`);
 }
 
 setInterval(() => {
