@@ -17,7 +17,7 @@ const LIMIAR = 0.5;
 let grafico = null;
 
 // --- CONFIG ---
-const MODO_SIMULACAO = true;
+const MODO_SIMULACAO = false;
 const R_BASE = 58.0;
 const R_TOPO = 75.5;
 const H_UTIL = 76.0;
@@ -83,13 +83,12 @@ function atualizarInterface(nivel, litros) {
   nivelDestino = nivel;
 
   if (litros !== undefined && litrosText) {
-    litrosText.innerText = Math.round(litros) + " L";
+      litrosText.innerText = Math.round(litros) + " L";
   }
 
-  // ===== PROCESSA CONSUMO =====
+  // ===== PROCESSA CONSUMO AQUI =====
   processarConsumo(litros);
 
-  // ===== ALERTAS =====
   if (nivel <= 25) { 
     if(water) water.style.background = "linear-gradient(to top, #ff0000, #ff4d4d)";
     statusText.innerText = "MUITO CRÍTICO";
@@ -97,49 +96,50 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.style.display = "block";
 
     if (!notificacao25Enviada) {
-      enviarTelegram(`🚨 Atenção: Nível Muito Crítico! ${nivel.toFixed(1)}% - Não abra os Registros de água.`);
+      enviarTelegram("🚨 Nível Muito Crítico! " + nivel.toFixed(1) + "%");
       avisarAlexa("caixamuitocritica"); 
       notificacao25Enviada = true;
       notificacao40Enviada = false;
     }
-
-  } else if (nivel <= 40) { 
+  } 
+  else if (nivel <= 40) { 
     if(water) water.style.background = "linear-gradient(to top, #ff7b00, #ffc107)";
     statusText.innerText = "LIGAR BOMBA";
-    alertaGrande.innerText = "⚠ ABAIXO DE 40%: LIGAR BOMBA";
+    alertaGrande.innerText = "⚠ ABAIXO DE 40%";
     alertaGrande.style.display = "block";
 
     if (!notificacao40Enviada) {
-      enviarTelegram(`⚠ Atenção: Nível em ${nivel.toFixed(1)}%. Ligue a bomba urgente!`);
+      enviarTelegram("⚠ Ligue a bomba!");
       avisarAlexa("ligarbomba"); 
       notificacao40Enviada = true;
       notificacao25Enviada = false;
       notificacao87Enviada = false;
     }
-
-  } else if (nivel >= 87) { 
+  } 
+  else if (nivel >= 87) { 
     if(water) water.style.background = "linear-gradient(to top, #0077ff, #00c6ff)";
     statusText.innerText = "Caixa Cheia";
-    alertaGrande.innerText = "⛔ DESLIGAR A BOMBA";
+    alertaGrande.innerText = "⛔ DESLIGAR BOMBA";
     alertaGrande.style.display = "block";
 
     if (!notificacao87Enviada) {
-      enviarTelegram(`🔔 ATENÇÃO: Caixa d'Água Encheu! ${nivel.toFixed(1)}% - Desligue a Bomba.`);
+      enviarTelegram("🔔 Caixa cheia!");
       avisarAlexa("caixacheia"); 
       notificacao87Enviada = true;
       notificacao40Enviada = false;
     }
-
-  } else {
+  } 
+  else {
     if(water) water.style.background = "linear-gradient(to top, #0077ff, #00c6ff)";
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
-  }
 
-  // ===== RESET INTELIGENTE =====
-  if (nivel > 30) notificacao25Enviada = false;
-  if (nivel > 50) notificacao40Enviada = false;
-  if (nivel < 85) notificacao87Enviada = false;
+    if (nivel > 45 && nivel < 80) {
+        notificacao25Enviada = false;
+        notificacao40Enviada = false;
+        notificacao87Enviada = false;
+    }
+  }
 }
 
 // ===== CONSUMO INTELIGENTE =====
@@ -250,16 +250,12 @@ function escutarGraficoTempoReal() {
 
 // ===== FIREBASE TEMPO REAL =====
 if (!MODO_SIMULACAO) {
-  database.ref('/').on('value', (snapshot) => {
-    const data = snapshot.val();
-
-    if (data && data.nivel !== undefined) {
-      atualizarInterface(
-        parseFloat(data.nivel),
-        data.litros !== undefined ? parseFloat(data.litros) : undefined
-      );
-    }
-  });
+    database.ref('/').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.nivel !== undefined) {
+            atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
+        }
+    });
 }
 
 // ===== INICIAR GRÁFICO =====
