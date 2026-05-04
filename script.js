@@ -24,8 +24,8 @@ const H_UTIL = 76.0;
 
 const AREA_UTIL = 49; 
 
-let notificacao25Enviada = false;
-let notificacao40Enviada = false;
+let notificacao10Enviada = false;
+let notificacao20Enviada = false;
 let notificacao87Enviada = false;
 
 const firebaseConfig = {
@@ -89,17 +89,17 @@ function atualizarInterface(nivel, litros) {
   // ===== PROCESSA CONSUMO AQUI =====
   processarConsumo(litros);
 
-  if (nivel <= 25) { 
+  if (nivel <= 10) { 
     if(water) water.style.background = "linear-gradient(to top, #ff0000, #ff4d4d)";
     statusText.innerText = "MUITO CRÍTICO";
     alertaGrande.innerText = "🚨 PERIGO: CAIXA VAZIA!";
     alertaGrande.style.display = "block";
 
-    if (!notificacao25Enviada) {
+    if (!notificacao10Enviada) {
       enviarTelegram("🚨 Atenção: Nível Muito Crítico! " + nivel.toFixed(1) + "% - Não abra os Registros de água.");
       avisarAlexa("caixamuitocritica"); 
-      notificacao25Enviada = true;
-      notificacao40Enviada = false;
+      notificacao10Enviada = true;
+      notificacao20Enviada = false;
     }
   } 
   else if (nivel <= 20) { 
@@ -108,11 +108,11 @@ function atualizarInterface(nivel, litros) {
     alertaGrande.innerText = "⚠ ABAIXO DE 20%";
     alertaGrande.style.display = "block";
 
-    if (!notificacao40Enviada) {
-      enviarTelegram("⚠ Atenção: Nível em 40%. Ligue a bomba urgente!");
+    if (!notificacao20Enviada) {
+      enviarTelegram("⚠ Atenção: Nível em 20%. Ligue a bomba urgente!");
       avisarAlexa("ligarbomba"); 
-      notificacao40Enviada = true;
-      notificacao25Enviada = false;
+      notificacao20Enviada = true;
+      notificacao10Enviada = false;
       notificacao87Enviada = false;
     }
   } 
@@ -126,7 +126,7 @@ function atualizarInterface(nivel, litros) {
       enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! " + nivel.toFixed(1) + "% - Desligue a Bomba.");
       avisarAlexa("caixacheia"); 
       notificacao87Enviada = true;
-      notificacao40Enviada = false;
+      notificacao20Enviada = false;
     }
   } 
   else {
@@ -134,9 +134,9 @@ function atualizarInterface(nivel, litros) {
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
 
-    if (nivel > 45 && nivel < 80) {
-        notificacao25Enviada = false;
-        notificacao40Enviada = false;
+    if (nivel > 25 && nivel < 80) {
+        notificacao10Enviada = false;
+        notificacao20Enviada = false;
         notificacao87Enviada = false;
     }
   }
