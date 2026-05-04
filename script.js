@@ -105,7 +105,7 @@ function atualizarInterface(nivel, litros) {
   else if (nivel <= 20) { 
     if(water) water.style.background = "linear-gradient(to top, #ff7b00, #ffc107)";
     statusText.innerText = "LIGAR BOMBA";
-    alertaGrande.innerText = "⚠ ABAIXO DE 40%";
+    alertaGrande.innerText = "⚠ ABAIXO DE 20%";
     alertaGrande.style.display = "block";
 
     if (!notificacao40Enviada) {
