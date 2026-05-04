@@ -250,12 +250,16 @@ function escutarGraficoTempoReal() {
 
 // ===== FIREBASE TEMPO REAL =====
 if (!MODO_SIMULACAO) {
-    database.ref('/').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data && data.nivel !== undefined && data.litros !== undefined) {
-            atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
-        }
-    });
+  database.ref('/').on('value', (snapshot) => {
+    const data = snapshot.val();
+
+    if (data && data.nivel !== undefined) {
+      atualizarInterface(
+        parseFloat(data.nivel),
+        data.litros !== undefined ? parseFloat(data.litros) : undefined
+      );
+    }
+  });
 }
 
 // ===== INICIAR GRÁFICO =====
