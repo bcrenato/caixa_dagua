@@ -3,111 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurações Avançadas</title>
+    <title>Configurações da Caixa</title>
     <link rel="stylesheet" href="style.css">
-
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0b0f1a">
-    <meta name="apple-mobile-web-app-title" content="Monitor Água">
-    <link rel="apple-touch-icon" href="icone.png">
-    
     <style>
         .config-container { background: #1e293b; padding: 20px; border-radius: 20px; max-width: 450px; margin: 20px auto; }
-        .setup-group { background: #0f172a; padding: 10px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
-        input { width: 70%; padding: 8px; margin: 5px; border-radius: 5px; border: none; text-align: center; }
-        label { display: block; font-size: 12px; color: #94a3b8; }
-        h3 { margin: 5px 0; color: #00c6ff; }
-        button { width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin-top: 5px; }
-        .btn-save { background: #22c55e; color: white; margin-top: 20px; }
+        .setup-group { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
+        input { width: 80%; padding: 10px; margin: 10px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white; text-align: center; font-size: 16px; }
+        label { display: block; font-size: 13px; color: #94a3b8; font-weight: bold; }
+        h3 { margin: 5px 0 15px 0; color: #3b82f6; }
+        .display-distancia { font-size: 32px; color: #22c55e; font-weight: bold; margin: 10px 0; }
+        .btn-salvar { width: 100%; padding: 15px; background: #22c55e; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; }
     </style>
 </head>
 <body>
-    <div class="config-container">
-        <h2 style="text-align: center;">⚙️ CONFIGURAÇÃO</h2>
-        
-        <div class="setup-group">
-            <label>VALOR DO SENSOR AGORA (A0):</label>
-            <h3 id="displayBruto">---</h3>
-            <button id="btnMin" onclick="capturar('min')">CAPTURAR VAZIO (0%)</button>
-            <button id="btnMax" onclick="capturar('max')">CAPTURAR CHEIO (100%)</button>
-        </div>
 
-        <div class="setup-group">
-            <label>ALTURA ÚTIL DA CAIXA (cm)</label>
-            <input type="number" id="h" value="76.0" placeholder="Ex: 76">
-            <label>RAIO DA BASE (cm)</label>
-            <input type="number" id="rb" value="58.0" placeholder="Ex: 58">
-            <label>RAIO DO TOPO (cm)</label>
-            <input type="number" id="rt" value="75.5" placeholder="Ex: 75.5">
-        </div>
-
-        <button class="btn-save" onclick="salvar()">SALVAR TUDO</button>
-        <button style="background: #ef4444; color: white;" onclick="window.location.href='index.html'">VOLTAR</button>
+<div class="config-container">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <button onclick="window.location.href='index.html'" style="background:none; border:none; color:#3b82f6; cursor:pointer;">⬅ Voltar</button>
+        <h2 style="margin:0;">Configurações</h2>
+        <div style="width:50px;"></div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
-            authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
-            databaseURL: "https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com",
-            projectId: "monitor-caixa-agua-ff63a"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    <div class="setup-group">
+        <label>DISTÂNCIA ATUAL DO SENSOR</label>
+        <div class="display-distancia"><span id="displayBruto">0.0</span> cm</div>
+        <small style="color: #64748b;">Use este valor para validar suas medidas</small>
+    </div>
 
-        let valorRaw = 0;
-        let inputMin = 0, inputMax = 1023;
+    <div class="setup-group">
+        <h3>📏 Níveis da Caixa (cm)</h3>
+        
+        <label>DISTÂNCIA VAZIO (0%)</label>
+        <input type="number" id="inputMin" placeholder="Ex: 80.5">
+        <small style="display:block; color:#64748b; margin-bottom:10px;">Distância do sensor até o fundo</small>
 
-// === COLOQUE O CÓDIGO NOVO AQUI (LOGODEPIS DO "const db") ===
-        db.ref('config').once('value').then((snapshot) => {
-            const d = snapshot.val();
-            if(d) {
-                inputMin = d.minimo || 0;
-                inputMax = d.maximo || 1023;
-                // Atualiza o texto dos botões com o que está salvo
-                if(document.getElementById('btnMin')) 
-                    document.getElementById('btnMin').innerText = "CAPTURAR VAZIO (0%) - " + inputMin;
-                if(document.getElementById('btnMax')) 
-                    document.getElementById('btnMax').innerText = "CAPTURAR CHEIO (100%) - " + inputMax;
-                
-                // Preenche os campos numéricos
-                document.getElementById('h').value = d.altura;
-                document.getElementById('rb').value = d.raioBase;
-                document.getElementById('rt').value = d.raioTopo;
-            }
-        });
-        // ==========================================================
+        <label>DISTÂNCIA CHEIO (100%)</label>
+        <input type="number" id="inputMax" placeholder="Ex: 15.0">
+        <small style="display:block; color:#64748b;">Distância do sensor até a água cheia</small>
+    </div>
 
-        db.ref('valor_bruto').on('value', (s) => {
-            valorRaw = s.val();
-            document.getElementById('displayBruto').innerText = valorRaw;
-        });
+    <div class="setup-group">
+        <h3>📐 Dimensões para Volume</h3>
+        <label>Altura Útil da Água (cm)</label>
+        <input type="number" id="h" step="0.1">
+        
+        <label>Raio da Base (cm)</label>
+        <input type="number" id="rb" step="0.1">
 
-        function capturar(t) {
-    if(t === 'min') {
-        inputMin = valorRaw;
-        document.getElementById('btnMin').innerText = "CAPTURAR VAZIO (0%) - " + inputMin;
-    }
-    if(t === 'max') {
-        inputMax = valorRaw;
-        document.getElementById('btnMax').innerText = "CAPTURAR CHEIO (100%) - " + inputMax;
-    }
-    // Opcional: remover o alert para não ficar travando a tela
-    // alert(t + " capturado: " + valorRaw);
-}
+        <label>Raio do Topo (cm)</label>
+        <input type="number" id="rt" step="0.1">
+    </div>
 
-        function salvar() {
-            db.ref('config').set({
-                minimo: inputMin,
-                maximo: inputMax,
-                altura: parseFloat(document.getElementById('h').value),
-                raioBase: parseFloat(document.getElementById('rb').value),
-                raioTopo: parseFloat(document.getElementById('rt').value)
-            }).then(() => alert("Configurações aplicadas!"));
+    <button class="btn-salvar" onclick="salvar()">APLICAR CONFIGURAÇÕES</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
+        authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
+        databaseURL: "https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com",
+        projectId: "monitor-caixa-agua-ff63a",
+        storageBucket: "monitor-caixa-agua-ff63a.appspot.com",
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Carregar dados atuais
+    db.ref('config').once('value', (s) => {
+        const d = s.val();
+        if(d) {
+            document.getElementById('inputMin').value = d.minimo;
+            document.getElementById('inputMax').value = d.maximo;
+            document.getElementById('h').value = d.altura;
+            document.getElementById('rb').value = d.raioBase;
+            document.getElementById('rt').value = d.raioTopo;
         }
-    </script>
+    });
+
+    // Escutar sensor em tempo real
+    db.ref('valor_bruto').on('value', (s) => {
+        document.getElementById('displayBruto').innerText = parseFloat(s.val()).toFixed(1);
+    });
+
+    function salvar() {
+        db.ref('config').set({
+            minimo: parseFloat(document.getElementById('inputMin').value),
+            maximo: parseFloat(document.getElementById('inputMax').value),
+            altura: parseFloat(document.getElementById('h').value),
+            raioBase: parseFloat(document.getElementById('rb').value),
+            raioTopo: parseFloat(document.getElementById('rt').value)
+        }).then(() => {
+            alert("Configurações atualizadas com sucesso!");
+            window.location.href = 'index.html';
+        });
+    }
+</script>
 </body>
 </html>
