@@ -17,16 +17,16 @@ const LIMIAR = 0.5;
 let grafico = null;
 
 // --- CONFIG ---
-const MODO_SIMULACAO = false;
+const MODO_SIMULACAO = true;
 const R_BASE = 58.0;
 const R_TOPO = 75.5;
-const H_UTIL = 76.0;
+const H_UTIL = 75.0;
 
 const AREA_UTIL = 49; 
 
-let notificacao10Enviada = false;
-let notificacao20Enviada = false;
-let notificacao87Enviada = false;
+let notificacao30Enviada = false;
+let notificacao38Enviada = false;
+let notificacao81Enviada = false;
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
@@ -89,44 +89,44 @@ function atualizarInterface(nivel, litros) {
   // ===== PROCESSA CONSUMO AQUI =====
   processarConsumo(litros);
 
-  if (nivel <= 10) { 
+  if (nivel <= 30) { 
     if(water) water.style.background = "linear-gradient(to top, #ff0000, #ff4d4d)";
     statusText.innerText = "MUITO CRÍTICO";
     alertaGrande.innerText = "🚨 PERIGO: CAIXA VAZIA!";
     alertaGrande.style.display = "block";
 
-    if (!notificacao10Enviada) {
+    if (!notificacao30Enviada) {
       enviarTelegram("🚨 Atenção: Nível Muito Crítico! " + nivel.toFixed(1) + "% - Não abra os Registros de água.");
       avisarAlexa("caixamuitocritica"); 
-      notificacao10Enviada = true;
-      notificacao20Enviada = false;
+      notificacao30Enviada = true;
+      notificacao38Enviada = false;
     }
   } 
-  else if (nivel <= 20) { 
+  else if (nivel <= 38) { 
     if(water) water.style.background = "linear-gradient(to top, #ff7b00, #ffc107)";
     statusText.innerText = "LIGAR BOMBA";
-    alertaGrande.innerText = "⚠ ABAIXO DE 20%";
+    alertaGrande.innerText = "⚠ ABAIXO DE 38%";
     alertaGrande.style.display = "block";
 
-    if (!notificacao20Enviada) {
-      enviarTelegram("⚠ Atenção: Nível em 20%. Ligue a bomba urgente!");
+    if (!notificacao38Enviada) {
+      enviarTelegram("⚠ Atenção: Nível em 38%. Ligue a bomba urgente!");
       avisarAlexa("ligarbomba"); 
-      notificacao20Enviada = true;
-      notificacao10Enviada = false;
-      notificacao87Enviada = false;
+      notificacao38Enviada = true;
+      notificacao30Enviada = false;
+      notificacao81Enviada = false;
     }
   } 
-  else if (nivel >= 87) { 
+  else if (nivel >= 81) { 
     if(water) water.style.background = "linear-gradient(to top, #0077ff, #00c6ff)";
     statusText.innerText = "Caixa Cheia";
     alertaGrande.innerText = "⛔ DESLIGAR BOMBA";
     alertaGrande.style.display = "block";
 
-    if (!notificacao87Enviada) {
+    if (!notificacao81Enviada) {
       enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! " + nivel.toFixed(1) + "% - Desligue a Bomba.");
       avisarAlexa("caixacheia"); 
-      notificacao87Enviada = true;
-      notificacao20Enviada = false;
+      notificacao81Enviada = true;
+      notificacao38Enviada = false;
     }
   } 
   else {
@@ -134,10 +134,10 @@ function atualizarInterface(nivel, litros) {
     statusText.innerText = "Normal";
     alertaGrande.style.display = "none";
 
-    if (nivel > 25 && nivel < 80) {
-        notificacao10Enviada = false;
-        notificacao20Enviada = false;
-        notificacao87Enviada = false;
+    if (nivel > 41 && nivel < 75) {
+        notificacao30Enviada = false;
+        notificacao38Enviada = false;
+        notificacao81Enviada = false;
     }
   }
 }
