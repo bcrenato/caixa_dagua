@@ -248,14 +248,35 @@ function escutarGraficoTempoReal() {
   });
 }
 
-// ===== FIREBASE TEMPO REAL =====
-if (!MODO_SIMULACAO) {
-    database.ref('/').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data && data.nivel !== undefined) {
-            atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
-        }
-    });
+// ===== ATIVAÇÃO DE ACORDO COM O MODO (SIMULAÇÃO OU REAL) =====
+if (MODO_SIMULACAO) {
+  console.log("🤖 Modo Simulação Ativo!");
+  let subindo = true;
+  let simNivel = 50;
+
+  setInterval(() => {
+    if (subindo) simNivel += 0.5;
+    else simNivel -= 0.5;
+
+    if (simNivel >= 100) subindo = false;
+    if (simNivel <= 5) subindo = true;
+
+    // FÓRMULA TRONCO DE CONE INTEGRADA
+    const h = (simNivel / 100) * H_UTIL;
+    const raioAt = R_BASE + (R_TOPO - R_BASE) * (h / H_UTIL);
+    const vol_cm3 = (3.14159 * h / 3.0) * (Math.pow(raioAt, 2) + (raioAt * R_BASE) + Math.pow(R_BASE, 2));
+    const litrosSimulados = vol_cm3 / 1000.0;
+
+    atualizarInterface(simNivel, litrosSimulados);
+  }, 500); 
+} else {
+  console.log("📡 Modo Produção (Firebase Real) Ativo!");
+  database.ref('/').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.nivel !== undefined) {
+      atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
+    }
+  });
 }
 
 // ===== INICIAR GRÁFICO =====
