@@ -17,7 +17,7 @@ const LIMIAR = 0.5;
 let grafico = null;
 
 // --- CONFIG ---
-const MODO_SIMULACAO = true;
+const MODO_SIMULACAO = false;
 const R_BASE = 58.0;
 const R_TOPO = 75.5;
 const H_UTIL = 75.0;
