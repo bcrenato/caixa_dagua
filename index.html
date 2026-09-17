@@ -67,33 +67,33 @@ body{
   border:4px solid #64748b
 }
 
-/* Imagem da caixa */
-.tank-img{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  opacity:.75;
-  z-index:2;
-  pointer-events:none
-}
-
-/* Água */
+/* ÁGUA - fica atrás do PNG */
 .water{
   position:absolute;
-  left:8px;
-  right:8px;
-  bottom:8px;
+  left:0;
+  right:0;
+  bottom:0;
   height:0;
   background:linear-gradient(to top,#0077ff,#00c6ff);
   transition:height .5s;
-  z-index:3;
-  border-radius:0 0 14px 14px
+  z-index:1
 }
 
 .water.low{
   background:linear-gradient(to top,#ff7b00,#ffc107)
+}
+
+/* PNG - fica por cima da água */
+.tank-img{
+  position:absolute;
+  left:-15px;
+  top:-15px;
+  width:calc(100% + 30px);
+  height:calc(100% + 30px);
+  object-fit:fill;
+  opacity:1;
+  z-index:2;
+  pointer-events:none
 }
 
 /* Borda frontal */
@@ -102,11 +102,10 @@ body{
   inset:0;
   border:2px solid #cbd5e1;
   border-radius:24px;
-  z-index:4;
+  z-index:3;
   pointer-events:none
 }
 
-/* Alerta */
 .alerta-grande{
   position:absolute;
   z-index:5;
