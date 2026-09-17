@@ -1,326 +1,35 @@
-const alertaGrande = document.getElementById("alertaGrande");
-const litrosText = document.getElementById("litrosText");
-const percent = document.getElementById("percent");
-const statusText = document.getElementById("status");
-const water = document.getElementById("water");
-const MAX_QUEDA_POR_LEITURA = 60; // ajuste (ex: 50L)
-
-
-// ===== NOVO: GASTO HOJE =====
-let menorNivelHoje = null;
-let ultimoLitros = null;
-let tempoUltimaLeitura = Date.now();
-let consumoHoje = 0;
-const LIMIAR = 0.5;
-
-// ===== NOVO: GRÁFICO =====
-let grafico = null;
-
-// --- CONFIG ---
-const MODO_SIMULACAO = false;
-const R_BASE = 58.0;
-const R_TOPO = 75.5;
-const H_UTIL = 75.0;
-
-const AREA_UTIL = 49; 
-
-let notificacao30Enviada = false;
-let notificacao38Enviada = false;
-let notificacao81Enviada = false;
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCQipZjlc86GtZGx3_aoyCT-jDrZ1oYyYM",
-  authDomain: "monitor-caixa-agua-ff63a.firebaseapp.com",
-  databaseURL: "https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com",
-  projectId: "monitor-caixa-agua-ff63a",
-  storageBucket: "monitor-caixa-agua-ff63a.firebasestorage.app",
-  messagingSenderId: "176234978770",
-  appId: "1:176234978770:web:e193d8242f4f111abd3c0b"
+const firebaseConfig={
+ apiKey:"SUA_API_KEY_FIREBASE",
+ authDomain:"monitor-caixa-agua-ff63a.firebaseapp.com",
+ databaseURL:"https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com",
+ projectId:"monitor-caixa-agua-ff63a",
+ storageBucket:"monitor-caixa-agua-ff63a.firebasestorage.app",
+ messagingSenderId:"176234978770",
+ appId:"1:176234978770:web:e193d8242f4f111abd3c0b"
 };
-
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-
-let nivelDestino = 0;
-let nivelAtualAnim = 0;
-
-// ===== DATA HOJE =====
-function getDataHoje() {
-  const hoje = new Date();
-
-  const ano = hoje.getFullYear();
-  const mes = String(hoje.getMonth() + 1).padStart(2, "0");
-  const dia = String(hoje.getDate()).padStart(2, "0");
-
-  return `${ano}-${mes}-${dia}`;
-}
-
-const dataHoje = getDataHoje();
-let dataAtual = dataHoje;
-let consumoRef = database.ref("consumo/" + dataHoje);
-
-// ===== CARREGAR CONSUMO SALVO =====
-consumoRef.once("value").then(snapshot => {
-  if (snapshot.exists()) {
-    const data = snapshot.val();
-    consumoHoje = data.total || 0;
-    menorNivelHoje = data.menorNivel || null;
-    atualizarConsumoHoje(consumoHoje);
-  }
-});
-
-// ===== ANIMAÇÃO =====
-function animar() {
-  nivelAtualAnim += (nivelDestino - nivelAtualAnim) * 0.1;
-  if(water) water.style.height = (nivelAtualAnim * AREA_UTIL / 100) + "%";
-  if(percent) percent.innerText = nivelAtualAnim.toFixed(1) + "%";
-  requestAnimationFrame(animar);
-}
+if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+const database=firebase.database();
+const AREA_UTIL=49,H_UTIL=75,R_BASE=58,R_TOPO=75.5;
+let config={nivel_ligar:40,nivel_desligar:80};
+let nivelDestino=0,nivelAnim=0,grafico=null;
+let consumoHoje=0,menorNivelHoje=null,ultimoLitros=null,tempoUltimaLeitura=0,dataAtual=new Date().toISOString().slice(0,10);
+const LIMIAR=.5,MAX_QUEDA_POR_LEITURA=60;
+const $=id=>document.getElementById(id);
+function getDataHoje(){return new Date().toISOString().slice(0,10)}
+function litrosTronco(n){if(n<=0)return 0;const h=n/100*H_UTIL,r=R_BASE+(R_TOPO-R_BASE)*(h/H_UTIL);return Math.PI*h/3*(r*r+r*R_BASE+R_BASE*R_BASE)/1000}
+function animar(){nivelAnim+=(nivelDestino-nivelAnim)*.1;if($('water'))$('water').style.height=Math.max(0,Math.min(100,nivelAnim))+'%';if($('percent'))$('percent').innerText=nivelAnim.toFixed(0)+'%';requestAnimationFrame(animar)}
 requestAnimationFrame(animar);
-
-// ===== INTERFACE =====
-function atualizarInterface(nivel, litros) {
-  nivelDestino = nivel;
-
-  if (litros !== undefined && litrosText) {
-      litrosText.innerText = Math.round(litros) + " L";
-  }
-
-  // ===== PROCESSA CONSUMO AQUI =====
-  processarConsumo(litros);
-
-  if (nivel <= 30) { 
-    if(water) water.style.background = "linear-gradient(to top, #ff0000, #ff4d4d)";
-    statusText.innerText = "MUITO CRÍTICO";
-    alertaGrande.innerText = "🚨 PERIGO: CAIXA VAZIA!";
-    alertaGrande.style.display = "block";
-
-    if (!notificacao30Enviada) {
-      enviarTelegram("🚨 Atenção: Nível Muito Crítico! " + nivel.toFixed(1) + "% - Não abra os Registros de água.");
-      avisarAlexa("caixamuitocritica"); 
-      notificacao30Enviada = true;
-      notificacao38Enviada = false;
-    }
-  } 
-  else if (nivel <= 38) { 
-    if(water) water.style.background = "linear-gradient(to top, #ff7b00, #ffc107)";
-    statusText.innerText = "LIGAR BOMBA";
-    alertaGrande.innerText = "⚠ ABAIXO DE 38%";
-    alertaGrande.style.display = "block";
-
-    if (!notificacao38Enviada) {
-      enviarTelegram("⚠ Atenção: Nível em 38%. Ligue a bomba urgente!");
-      avisarAlexa("ligarbomba"); 
-      notificacao38Enviada = true;
-      notificacao30Enviada = false;
-      notificacao81Enviada = false;
-    }
-  } 
-  else if (nivel >= 81) { 
-    if(water) water.style.background = "linear-gradient(to top, #0077ff, #00c6ff)";
-    statusText.innerText = "Caixa Cheia";
-    alertaGrande.innerText = "⛔ DESLIGAR BOMBA";
-    alertaGrande.style.display = "block";
-
-    if (!notificacao81Enviada) {
-      enviarTelegram("🔔 ATENÇÃO: Caixa d'Água Encheu! " + nivel.toFixed(1) + "% - Desligue a Bomba.");
-      avisarAlexa("caixacheia"); 
-      notificacao81Enviada = true;
-      notificacao38Enviada = false;
-    }
-  } 
-  else {
-    if(water) water.style.background = "linear-gradient(to top, #0077ff, #00c6ff)";
-    statusText.innerText = "Normal";
-    alertaGrande.style.display = "none";
-
-    if (nivel > 41 && nivel < 75) {
-        notificacao30Enviada = false;
-        notificacao38Enviada = false;
-        notificacao81Enviada = false;
-    }
-  }
-}
-
-// ===== CONSUMO INTELIGENTE =====
-function processarConsumo(litrosAtual) {
-  if (litrosAtual === undefined || litrosAtual === null) return;
-
-  if (litrosAtual > 1100 || litrosAtual < 0) return;
-
-
-  
-const agora = Date.now();
-
-if (ultimoLitros !== null) {
-  const diferenca = Math.abs(litrosAtual - ultimoLitros);
-
-  // variação absurda em pouco tempo = erro
-  if (diferenca > 100 && (agora - tempoUltimaLeitura < 5000)) {
-    console.warn("⚠️ Leitura descartada (instável)");
-    return;
-  }
-}
-
-ultimoLitros = litrosAtual;
-tempoUltimaLeitura = agora;
-
-
-  
-
-  
-
-  if (menorNivelHoje === null) {
-    menorNivelHoje = litrosAtual;
-    return;
-  }
-
-  if (litrosAtual < menorNivelHoje) {
-
-    const diferenca = menorNivelHoje - litrosAtual;
-
-    // 🚨 BLOQUEIA QUEDA IRREAL
-    if (diferenca > MAX_QUEDA_POR_LEITURA) {
-      console.warn("⚠️ Queda ignorada (possível erro sensor):", diferenca);
-      return;
-    }
-
-    // só soma se for consumo real
-    if (diferenca > LIMIAR) {
-      consumoHoje += diferenca;
-      atualizarConsumoHoje(consumoHoje);
-    }
-
-    menorNivelHoje = litrosAtual;
-
-    consumoRef.set({
-      total: parseFloat(consumoHoje.toFixed(2)),
-      menorNivel: menorNivelHoje,
-      ultimaAtualizacao: Date.now()
-    });
-  }
-}
-
-// ===== ATUALIZA UI =====
-function atualizarConsumoHoje(valor) {
-  const el = document.getElementById("gastoHoje");
-  if (el) el.innerText = valor.toFixed(1) + " L";
-}
-
-// ===== GRÁFICO =====
-function iniciarGrafico() {
-  const ctx = document.getElementById("graficoConsumo")?.getContext("2d");
-  if (!ctx) return;
-
-  grafico = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [{
-        label: "Litros por dia",
-        data: [],
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      animation: false
-    }
-  });
-}
-
-function escutarGraficoTempoReal() {
-  database.ref("consumo").on("value", snapshot => {
-    const dados = snapshot.val();
-    if (!dados || !grafico) return;
-
-    const datas = [];
-    const valores = [];
-
-    Object.keys(dados).sort().forEach(d => {
-      datas.push(d.split("-").reverse().join("/"));
-      valores.push(dados[d].total || 0);
-    });
-
-    grafico.data.labels = datas;
-    grafico.data.datasets[0].data = valores;
-    grafico.update();
-  });
-}
-
-// ===== ATIVAÇÃO DE ACORDO COM O MODO (SIMULAÇÃO OU REAL) =====
-if (MODO_SIMULACAO) {
-  console.log("🤖 Modo Simulação Ativo!");
-  let subindo = true;
-  let simNivel = 50;
-
-  setInterval(() => {
-    if (subindo) simNivel += 0.5;
-    else simNivel -= 0.5;
-
-    if (simNivel >= 100) subindo = false;
-    if (simNivel <= 5) subindo = true;
-
-    // FÓRMULA TRONCO DE CONE INTEGRADA
-    const h = (simNivel / 100) * H_UTIL;
-    const raioAt = R_BASE + (R_TOPO - R_BASE) * (h / H_UTIL);
-    const vol_cm3 = (3.14159 * h / 3.0) * (Math.pow(raioAt, 2) + (raioAt * R_BASE) + Math.pow(R_BASE, 2));
-    const litrosSimulados = vol_cm3 / 1000.0;
-
-    atualizarInterface(simNivel, litrosSimulados);
-  }, 500); 
-} else {
-  console.log("📡 Modo Produção (Firebase Real) Ativo!");
-  database.ref('/').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data && data.nivel !== undefined) {
-      atualizarInterface(parseFloat(data.nivel), parseFloat(data.litros));
-    }
-  });
-}
-
-// ===== INICIAR GRÁFICO =====
-iniciarGrafico();
-escutarGraficoTempoReal();
-
-// ===== APIs =====
-function enviarTelegram(msg) {
-  const token = "8533439908:AAFtykn10UsOEz_NTMPU6pFcptyg0KlYpeI";
-  const chat = "554870921";
-  fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${encodeURIComponent(msg)}`);
-}
-
-function avisarAlexa(monkeyDevice) {
-  const token = "9ed63e20213795a3af8393dcab767373_8ca1d0a8f948bcc2ce71d8eb5c58d622";
-  fetch(`https://api-v2.voicemonkey.io/trigger?token=${token}&device=${monkeyDevice}&monkey=${monkeyDevice}`);
-}
-
-setInterval(() => {
-  const novaData = getDataHoje();
-
-  if (novaData !== dataAtual && document.visibilityState === "visible") {
-    console.log("🔄 Novo dia detectado!");
-
-    dataAtual = novaData;
-
-    // 🧹 ZERA VARIÁVEIS
-    menorNivelHoje = null;
-    consumoHoje = 0;
-    atualizarConsumoHoje(0);
-
-    // 🔄 ATUALIZA FIREBASE
-    consumoRef = database.ref("consumo/" + novaData);
-
-    // 🔄 CARREGA DADOS DO NOVO DIA (se existir)
-    consumoRef.once("value").then(snapshot => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-
-        consumoHoje = data.total || 0;
-        menorNivelHoje = data.menorNivel || null;
-
-        atualizarConsumoHoje(consumoHoje);
-      }
-    });
-  }
-}, 60000); // verifica a cada 1 minuto
+function atualizarInterface(nivel,litros){nivelDestino=nivel;if($('litrosText'))$('litrosText').innerText=Math.round(litros)+' L';processarConsumo(litros);const w=$('water'),s=$('status'),a=$('alertaGrande');if(!w||!s)return;if(nivel<=30){w.className='water low';s.innerText='MUITO CRÍTICO';if(a){a.innerText='🚨 PERIGO: CAIXA MUITO BAIXA!';a.style.display='block'}}else if(nivel<=config.nivel_ligar){w.className='water low';s.innerText='NÍVEL BAIXO';if(a){a.innerText='⚠️ BOMBA: NÍVEL PARA LIGAR';a.style.display='block'}}else if(nivel>=80){w.className='water';s.innerText='CAIXA CHEIA';if(a){a.innerText='⛔ BOMBA: NÍVEL PARA DESLIGAR';a.style.display='block'}}else{w.className='water';s.innerText='Normal';if(a)a.style.display='none'}}
+function processarConsumo(litros){if(litros==null||litros<0||litros>1100)return;const now=Date.now();if(ultimoLitros!==null&&Math.abs(litros-ultimoLitros)>100&&now-tempoUltimaLeitura<5000)return;ultimoLitros=litros;tempoUltimaLeitura=now;if(menorNivelHoje===null){menorNivelHoje=litros;return}if(litros<menorNivelHoje){const dif=menorNivelHoje-litros;if(dif>MAX_QUEDA_POR_LEITURA)return;if(dif>LIMIAR){consumoHoje+=dif;atualizarConsumoHoje(consumoHoje)}menorNivelHoje=litros;database.ref('consumo/'+dataAtual).set({total:+consumoHoje.toFixed(2),menorNivel:+menorNivelHoje.toFixed(2),ultimaAtualizacao:Date.now()})}}
+function atualizarConsumoHoje(v){if($('gastoHoje'))$('gastoHoje').innerText=v.toFixed(1)+' L'}
+function atualizarBoia(id,v){const e=$(id);if(e)e.innerText=v?'🟢':'⚪'}
+function atualizarAutomacao(d){if($('statusBomba'))$('statusBomba').innerText=d.status_bomba?'🟢 LIGADA':'🔴 DESLIGADA';if($('modoAutomacao'))$('modoAutomacao').innerText=d.modo_manual?'MANUAL':'AUTOMÁTICO';if($('statusSonoff'))$('statusSonoff').innerText=d.sonoff_online?'🟢 ONLINE':'🔴 OFFLINE';if($('wifiRssi'))$('wifiRssi').innerText=d.dispositivo?.rssi!=null?d.dispositivo.rssi+' dBm':'-';if($('sistemaSeguro'))$('sistemaSeguro').innerText=d.sistema_seguro?'🟢 NORMAL':'🚨 FALHA';if($('ultimoEvento'))$('ultimoEvento').innerText=d.ultimo_evento||'-';['20','40','60','80'].forEach(x=>atualizarBoia('boia'+x,d.boias?.[x]))}
+database.ref('/').on('value',s=>{const d=s.val();if(!d)return;if(d.configuracao)config=Object.assign(config,d.configuracao);if(d.nivel!==undefined)atualizarInterface(+d.nivel,+d.litros||litrosTronco(+d.nivel));atualizarAutomacao(d)});
+database.ref('configuracao').on('value',s=>{if(s.exists())config=Object.assign(config,s.val())});
+function comandoBomba(cmd){if(!confirm(cmd==='ON'?'Ligar a bomba?':'Desligar a bomba?'))return;database.ref('comandos/bomba').set(cmd).then(()=>alert('Comando enviado ao ESP8266.'))}
+function comandoModo(modo){database.ref('comandos/modo').set(modo).then(()=>alert('Modo '+modo+' enviado ao ESP8266.'))}
+function iniciarGrafico(){const c=$('graficoConsumo')?.getContext('2d');if(!c)return;grafico=new Chart(c,{type:'line',data:{labels:[],datasets:[{label:'Litros por dia',data:[],tension:.3}]},options:{responsive:true,animation:false}})}
+function escutarGrafico(){database.ref('consumo').on('value',s=>{const d=s.val();if(!d||!grafico)return;const labels=[],val=[];Object.keys(d).sort().forEach(k=>{labels.push(k.split('-').reverse().join('/'));val.push(d[k].total||0)});grafico.data.labels=labels;grafico.data.datasets[0].data=val;grafico.update()})}
+iniciarGrafico();escutarGrafico();
+database.ref('consumo/'+dataAtual).once('value').then(s=>{if(s.exists()){const d=s.val();consumoHoje=d.total||0;menorNivelHoje=d.menorNivel??null;atualizarConsumoHoje(consumoHoje)}});
+setInterval(()=>{const n=getDataHoje();if(n!==dataAtual){dataAtual=n;consumoHoje=0;menorNivelHoje=null;ultimoLitros=null;atualizarConsumoHoje(0);}},60000);
