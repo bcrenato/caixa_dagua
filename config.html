@@ -455,6 +455,24 @@
         +$('boia80').value;
 
 
+      const tela0 =
+  +$('tela0').value;
+
+const tela20 =
+  +$('tela20').value;
+
+const tela40 =
+  +$('tela40').value;
+
+const tela60 =
+  +$('tela60').value;
+
+const tela80 =
+  +$('tela80').value;
+
+const tela100 =
+  +$('tela100').value;
+
       // Verificação dos valores da automação
 
       if (
@@ -492,7 +510,26 @@
         return;
       }
 
+if (
+  tela0 < 0 ||
+  tela0 > 100 ||
+  tela20 < 0 ||
+  tela20 > 100 ||
+  tela40 < 0 ||
+  tela40 > 100 ||
+  tela60 < 0 ||
+  tela60 > 100 ||
+  tela80 < 0 ||
+  tela80 > 100 ||
+  tela100 < 0 ||
+  tela100 > 100
+) {
 
+  $('status').innerText =
+    '❌ Os valores da calibração visual devem estar entre 0 e 100%.';
+
+  return;
+}
       // Verificação da sequência física
 
       if (
@@ -512,23 +549,35 @@
 
       db.ref('configuracao').update({
 
-        nivel_ligar: nivelLigar,
+  nivel_ligar: nivelLigar,
 
-        nivel_desligar: 80,
+  nivel_desligar: 80,
 
-        timeout_bomba: timeoutBomba,
+  timeout_bomba: timeoutBomba,
 
-        debounce: debounce,
+  debounce: debounce,
 
-        boia20: boia20,
+  boia20: boia20,
 
-        boia40: boia40,
+  boia40: boia40,
 
-        boia60: boia60,
+  boia60: boia60,
 
-        boia80: boia80
+  boia80: boia80,
 
-      })
+  tela0: tela0,
+
+  tela20: tela20,
+
+  tela40: tela40,
+
+  tela60: tela60,
+
+  tela80: tela80,
+
+  tela100: tela100
+
+})
 
       .then(() => {
 
