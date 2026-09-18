@@ -1,1 +1,510 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Configuração - Caixa d'Água</title><style>body{margin:0;padding:20px;background:#0b0f1a;color:#fff;font-family:Arial}.container{max-width:520px;margin:auto}.card{background:#1e293b;padding:20px;border-radius:18px;margin-bottom:15px}h1{text-align:center}label{display:block;margin-top:16px;color:#94a3b8}input{width:100%;padding:13px;margin-top:6px;border-radius:10px;border:1px solid #475569;background:#0f172a;color:#fff;font-size:18px}button{width:100%;padding:14px;margin-top:10px;border:0;border-radius:12px;color:#fff;font-weight:bold}.save{background:#22c55e}.on{background:#22c55e}.off{background:#ef4444}.auto{background:#3b82f6}.manual{background:#f59e0b}.back{background:#334155}.info{background:#0f172a;padding:12px;border-radius:10px;margin-top:14px;color:#94a3b8;font-size:13px}.status{text-align:center;font-weight:bold}</style></head><body><div class="container"><h1>⚙️ Automação</h1><div class="card"><label>Nível para LIGAR (%)</label><input id="nivelLigar" type="number" min="20" max="70" step="5"><label>Nível para DESLIGAR (%)</label><input id="nivelDesligar" type="number" min="80" max="80" value="80"><label>Tempo máximo da bomba (min)</label><input id="timeoutBomba" type="number" min="5" max="180"><label>Debounce das boias (segundos)</label><input id="debounce" type="number" min="1" max="30"><button class="save" onclick="salvar()">💾 SALVAR CONFIGURAÇÃO</button><div id="status" class="status"></div><div class="info">Esta versão usa 4 boias: 20%, 40%, 60% e 80%. O ESP8266 salva a configuração na EEPROM e continua responsável pela automação e segurança.</div></div><div class="card"><h3>🎛️ Controle</h3><button class="on" onclick="bomba('ON')">🟢 LIGAR BOMBA</button><button class="off" onclick="bomba('OFF')">🔴 DESLIGAR BOMBA</button><button class="auto" onclick="modo('AUTO')">🤖 MODO AUTOMÁTICO</button><button class="manual" onclick="modo('MANUAL')">🖐️ MODO MANUAL</button></div><button class="back" onclick="location.href='index.html'">← VOLTAR PARA O PAINEL</button></div><script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script><script>const firebaseConfig={apiKey:'SUA_API_KEY_FIREBASE',authDomain:'monitor-caixa-agua-ff63a.firebaseapp.com',databaseURL:'https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com',projectId:'monitor-caixa-agua-ff63a',storageBucket:'monitor-caixa-agua-ff63a.firebasestorage.app',messagingSenderId:'176234978770',appId:'1:176234978770:web:e193d8242f4f111abd3c0b'};firebase.initializeApp(firebaseConfig);const db=firebase.database();const $=id=>document.getElementById(id);db.ref('configuracao').on('value',s=>{const c=s.val()||{};$('nivelLigar').value=c.nivel_ligar??40;$('nivelDesligar').value=80;$('timeoutBomba').value=c.timeout_bomba??90;$('debounce').value=c.debounce??5});function salvar(){const a=+$('nivelLigar').value,t=+$('timeoutBomba').value,d=+$('debounce').value;if(a<20||a>=80||t<5||t>180||d<1||d>30){$('status').innerText='❌ Verifique os valores.';return}db.ref('configuracao').set({nivel_ligar:a,nivel_desligar:80,timeout_bomba:t,debounce:d}).then(()=>$('status').innerText='✅ Configuração salva.').catch(e=>$('status').innerText='❌ '+e.message)}function bomba(c){if(confirm(c==='ON'?'Ligar a bomba?':'Desligar a bomba?'))db.ref('comandos/bomba').set(c)}function modo(m){db.ref('comandos/modo').set(m)}</script></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Configuração - Caixa d'Água</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #0b0f1a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: auto;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 18px;
+      margin-bottom: 15px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    h3 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      margin-top: 16px;
+      color: #94a3b8;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      margin-top: 6px;
+      border-radius: 10px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      border: 0;
+      border-radius: 12px;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .save {
+      background: #22c55e;
+    }
+
+    .on {
+      background: #22c55e;
+    }
+
+    .off {
+      background: #ef4444;
+    }
+
+    .auto {
+      background: #3b82f6;
+    }
+
+    .manual {
+      background: #f59e0b;
+    }
+
+    .back {
+      background: #334155;
+    }
+
+    .info {
+      background: #0f172a;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 14px;
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .status {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 12px;
+    }
+
+    .section-title {
+      color: #fff;
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+
+    .section-description {
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1.4;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>⚙️ Automação</h1>
+
+    <!-- CONFIGURAÇÃO DA AUTOMAÇÃO -->
+    <div class="card">
+
+      <h3 class="section-title">🤖 Automação da bomba</h3>
+
+      <p class="section-description">
+        Define em qual nível a bomba será ligada e os parâmetros
+        de segurança do sistema.
+      </p>
+
+      <label>Nível para LIGAR (%)</label>
+      <input
+        id="nivelLigar"
+        type="number"
+        min="20"
+        max="70"
+        step="5"
+      >
+
+      <label>Nível para DESLIGAR (%)</label>
+      <input
+        id="nivelDesligar"
+        type="number"
+        min="80"
+        max="80"
+        value="80"
+        readonly
+      >
+
+      <label>Tempo máximo da bomba (min)</label>
+      <input
+        id="timeoutBomba"
+        type="number"
+        min="5"
+        max="180"
+      >
+
+      <label>Debounce das boias (segundos)</label>
+      <input
+        id="debounce"
+        type="number"
+        min="1"
+        max="30"
+      >
+
+    </div>
+
+
+    <!-- CALIBRAÇÃO DAS BOIAS -->
+    <div class="card">
+
+      <h3 class="section-title">🎚️ Calibração das boias</h3>
+
+      <p class="section-description">
+        Informe a porcentagem real correspondente à posição física
+        de cada boia no reservatório.
+      </p>
+
+      <label>Boia física 1 — posição inferior (%)</label>
+      <input
+        id="boia20"
+        type="number"
+        min="1"
+        max="100"
+      >
+
+      <label>Boia física 2 — posição (%)</label>
+      <input
+        id="boia40"
+        type="number"
+        min="1"
+        max="100"
+      >
+
+      <label>Boia física 3 — posição (%)</label>
+      <input
+        id="boia60"
+        type="number"
+        min="1"
+        max="100"
+      >
+
+      <label>Boia física 4 — posição superior (%)</label>
+      <input
+        id="boia80"
+        type="number"
+        min="1"
+        max="100"
+      >
+
+      <div class="info">
+        <b>Importante:</b><br>
+        Os valores precisam estar em ordem crescente.
+        Por exemplo: 18%, 37%, 59% e 78%.
+        A sequência física das boias continua sendo validada
+        pelo ESP8266.
+      </div>
+
+    </div>
+
+
+    <!-- SALVAR -->
+    <div class="card">
+
+      <button
+        class="save"
+        onclick="salvar()">
+        💾 SALVAR CONFIGURAÇÃO
+      </button>
+
+      <div
+        id="status"
+        class="status">
+      </div>
+
+      <div class="info">
+        O ESP8266 salva a configuração na EEPROM e continua
+        responsável pela automação e pela segurança da bomba.
+      </div>
+
+    </div>
+
+
+    <!-- CONTROLE -->
+    <div class="card">
+
+      <h3>🎛️ Controle</h3>
+
+      <button
+        class="on"
+        onclick="bomba('ON')">
+        🟢 LIGAR BOMBA
+      </button>
+
+      <button
+        class="off"
+        onclick="bomba('OFF')">
+        🔴 DESLIGAR BOMBA
+      </button>
+
+      <button
+        class="auto"
+        onclick="modo('AUTO')">
+        🤖 MODO AUTOMÁTICO
+      </button>
+
+      <button
+        class="manual"
+        onclick="modo('MANUAL')">
+        🖐️ MODO MANUAL
+      </button>
+
+    </div>
+
+
+    <!-- VOLTAR -->
+    <button
+      class="back"
+      onclick="location.href='index.html'">
+      ← VOLTAR PARA O PAINEL
+    </button>
+
+  </div>
+
+
+  <!-- FIREBASE -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+
+  <script>
+
+    const firebaseConfig = {
+      apiKey: 'SUA_API_KEY_FIREBASE',
+      authDomain: 'monitor-caixa-agua-ff63a.firebaseapp.com',
+      databaseURL: 'https://monitor-caixa-agua-ff63a-default-rtdb.firebaseio.com',
+      projectId: 'monitor-caixa-agua-ff63a',
+      storageBucket: 'monitor-caixa-agua-ff63a.firebasestorage.app',
+      messagingSenderId: '176234978770',
+      appId: '1:176234978770:web:e193d8242f4f111abd3c0b'
+    };
+
+
+    firebase.initializeApp(firebaseConfig);
+
+    const db = firebase.database();
+
+
+    const $ = id => document.getElementById(id);
+
+
+    // ============================================================
+    // CARREGAR CONFIGURAÇÃO DO FIREBASE
+    // ============================================================
+
+    db.ref('configuracao').on('value', snapshot => {
+
+      const c = snapshot.val() || {};
+
+      $('nivelLigar').value =
+        c.nivel_ligar ?? 40;
+
+      $('nivelDesligar').value =
+        80;
+
+      $('timeoutBomba').value =
+        c.timeout_bomba ?? 90;
+
+      $('debounce').value =
+        c.debounce ?? 5;
+
+      $('boia20').value =
+        c.boia20 ?? 20;
+
+      $('boia40').value =
+        c.boia40 ?? 40;
+
+      $('boia60').value =
+        c.boia60 ?? 60;
+
+      $('boia80').value =
+        c.boia80 ?? 80;
+
+    });
+
+
+    // ============================================================
+    // SALVAR CONFIGURAÇÃO
+    // ============================================================
+
+    function salvar() {
+
+      const nivelLigar =
+        +$('nivelLigar').value;
+
+      const timeoutBomba =
+        +$('timeoutBomba').value;
+
+      const debounce =
+        +$('debounce').value;
+
+      const boia20 =
+        +$('boia20').value;
+
+      const boia40 =
+        +$('boia40').value;
+
+      const boia60 =
+        +$('boia60').value;
+
+      const boia80 =
+        +$('boia80').value;
+
+
+      // Verificação dos valores da automação
+
+      if (
+        nivelLigar < 20 ||
+        nivelLigar >= 80 ||
+        timeoutBomba < 5 ||
+        timeoutBomba > 180 ||
+        debounce < 1 ||
+        debounce > 30
+      ) {
+
+        $('status').innerText =
+          '❌ Verifique os valores da automação.';
+
+        return;
+      }
+
+
+      // Verificação dos valores das boias
+
+      if (
+        boia20 < 1 ||
+        boia20 > 100 ||
+        boia40 < 1 ||
+        boia40 > 100 ||
+        boia60 < 1 ||
+        boia60 > 100 ||
+        boia80 < 1 ||
+        boia80 > 100
+      ) {
+
+        $('status').innerText =
+          '❌ Os valores das boias devem estar entre 1 e 100%.';
+
+        return;
+      }
+
+
+      // Verificação da sequência física
+
+      if (
+        boia20 >= boia40 ||
+        boia40 >= boia60 ||
+        boia60 >= boia80
+      ) {
+
+        $('status').innerText =
+          '❌ As boias devem estar em ordem crescente.';
+
+        return;
+      }
+
+
+      // Atualiza somente os campos de configuração
+
+      db.ref('configuracao').update({
+
+        nivel_ligar: nivelLigar,
+
+        nivel_desligar: 80,
+
+        timeout_bomba: timeoutBomba,
+
+        debounce: debounce,
+
+        boia20: boia20,
+
+        boia40: boia40,
+
+        boia60: boia60,
+
+        boia80: boia80
+
+      })
+
+      .then(() => {
+
+        $('status').innerText =
+          '✅ Configuração salva com sucesso.';
+
+      })
+
+      .catch(error => {
+
+        $('status').innerText =
+          '❌ ' + error.message;
+
+      });
+
+    }
+
+
+    // ============================================================
+    // CONTROLE DA BOMBA
+    // ============================================================
+
+    function bomba(comando) {
+
+      if (
+        !confirm(
+          comando === 'ON'
+            ? 'Ligar a bomba?'
+            : 'Desligar a bomba?'
+        )
+      ) {
+        return;
+      }
+
+      db.ref('comandos/bomba')
+        .set(comando);
+
+    }
+
+
+    // ============================================================
+    // MODO DE OPERAÇÃO
+    // ============================================================
+
+    function modo(m) {
+
+      db.ref('comandos/modo')
+        .set(m);
+
+    }
+
+  </script>
+
+</body>
+</html>
