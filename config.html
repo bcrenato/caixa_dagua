@@ -377,33 +377,54 @@
 
     db.ref('configuracao').on('value', snapshot => {
 
-      const c = snapshot.val() || {};
+  const c = snapshot.val() || {};
 
-      $('nivelLigar').value =
-        c.nivel_ligar ?? 40;
+  $('nivelLigar').value =
+    c.nivel_ligar ?? 40;
 
-      $('nivelDesligar').value =
-        80;
+  $('nivelDesligar').value =
+    80;
 
-      $('timeoutBomba').value =
-        c.timeout_bomba ?? 90;
+  $('timeoutBomba').value =
+    c.timeout_bomba ?? 90;
 
-      $('debounce').value =
-        c.debounce ?? 5;
+  $('debounce').value =
+    c.debounce ?? 5;
 
-      $('boia20').value =
-        c.boia20 ?? 20;
+  $('boia20').value =
+    c.boia20 ?? 20;
 
-      $('boia40').value =
-        c.boia40 ?? 40;
+  $('boia40').value =
+    c.boia40 ?? 40;
 
-      $('boia60').value =
-        c.boia60 ?? 60;
+  $('boia60').value =
+    c.boia60 ?? 60;
 
-      $('boia80').value =
-        c.boia80 ?? 80;
+  $('boia80').value =
+    c.boia80 ?? 80;
 
-    });
+
+  // Calibração visual da água
+
+  $('tela0').value =
+    c.tela0 ?? 0;
+
+  $('tela20').value =
+    c.tela20 ?? 20;
+
+  $('tela40').value =
+    c.tela40 ?? 40;
+
+  $('tela60').value =
+    c.tela60 ?? 60;
+
+  $('tela80').value =
+    c.tela80 ?? 80;
+
+  $('tela100').value =
+    c.tela100 ?? 100;
+
+});
 
 
     // ============================================================
