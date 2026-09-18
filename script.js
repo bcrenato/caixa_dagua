@@ -1,4 +1,4 @@
-```javascript
+javascript
 const firebaseConfig={
  apiKey:"SUA_API_KEY_FIREBASE",
  authDomain:"monitor-caixa-agua-ff63a.firebaseapp.com",
@@ -386,4 +386,4 @@ setInterval(()=>{
   }
 
 },60000);
-```
+
