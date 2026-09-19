@@ -102,6 +102,7 @@ function atualizarInterface(nivel,litros){
 
   console.log("NIVEL RECEBIDO:", nivel, "hora:", new Date().toLocaleTimeString());
 nivelDestino=nivel;
+ nivelAnim=nivel;
 
   if($('litrosText'))$('litrosText').innerText=Math.round(litros)+' L';
 
