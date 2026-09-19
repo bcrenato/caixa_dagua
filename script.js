@@ -80,7 +80,7 @@ function alturaAguaVisual(nivel){
 
 function animar(){
 
-  nivelAnim+=(nivelDestino-nivelAnim)*.5;
+  nivelAnim+=(nivelDestino-nivelAnim)*.8;
 
   const visual=alturaAguaVisual(nivelAnim);
 
