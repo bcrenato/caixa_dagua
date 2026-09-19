@@ -100,7 +100,8 @@ requestAnimationFrame(animar);
 
 function atualizarInterface(nivel,litros){
 
-  nivelDestino=nivel;
+  console.log("NIVEL RECEBIDO:", nivel, "hora:", new Date().toLocaleTimeString());
+nivelDestino=nivel;
 
   if($('litrosText'))$('litrosText').innerText=Math.round(litros)+' L';
 
@@ -202,6 +203,8 @@ function atualizarConsumoHoje(v){
 
 
 function atualizarBoia(id,v){
+
+  console.log("BOIA:", id, v, "hora:", new Date().toLocaleTimeString());
 
   const e=$(id);
 
