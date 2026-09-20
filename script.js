@@ -101,7 +101,7 @@ requestAnimationFrame(animar);
 function atualizarInterface(nivel,litros){
 
   nivelDestino=nivel;
- //nivelAnim=nivel;
+ nivelAnim=nivel;
 
   if($('litrosText'))$('litrosText').innerText=Math.round(litros)+' L';
 
