@@ -80,9 +80,9 @@ function alturaAguaVisual(nivel){
 
 function animar(){
 
-  nivelAnim+=(nivelDestino-nivelAnim)*.1;
+  nivelAnim+=(nivelDestino-nivelAnim)*.8;
 
-  const visual=alturaAguaVisual(nivelAnim);
+  const visual=alturaAguaVisual(nivelDestino);
 
   if($('water')){
     $('water').style.height=Math.max(0,Math.min(100,visual))+'%';
