@@ -15,8 +15,8 @@ const database=firebase.database();
 const AREA_UTIL=49,H_UTIL=75,R_BASE=58,R_TOPO=75.5;
 
 let config={
- nivel_ligar:40,
- nivel_desligar:80
+  margem_queda:5,
+  nivel_desligar:80
 };
 
 let nivelDestino=0,nivelAnim=0,grafico=null;
@@ -123,15 +123,15 @@ function atualizarInterface(nivel,litros){
       a.style.display='block'
     }
 
-  }else if(nivel<=config.nivel_ligar){
+  }else if(nivel<=20){
 
-    w.className='water low';
-    s.innerText='NÍVEL BAIXO';
+  w.className='water low';
+  s.innerText='NÍVEL BAIXO';
 
-    if(a){
-      a.innerText='⚠️ BOMBA: NÍVEL PARA LIGAR';
-      a.style.display='block'
-    }
+  if(a){
+    a.innerText='⚠️ BOMBA: NÍVEL PARA LIGAR';
+    a.style.display='block'
+  }
 
   }else if(nivel>=80){
 
