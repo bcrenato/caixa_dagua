@@ -135,24 +135,24 @@
         de segurança do sistema.
       </p>
 
-      <label>Nível para LIGAR (%)</label>
-      <input
-        id="nivelLigar"
-        type="number"
-        min="20"
-        max="70"
-        step="5"
-      >
+      <label>Margem de queda (%)</label>
+<input
+  id="margemQueda"
+  type="number"
+  min="1"
+  max="20"
+  step="1"
+>
 
-      <label>Nível para DESLIGAR (%)</label>
-      <input
-        id="nivelDesligar"
-        type="number"
-        min="80"
-        max="80"
-        value="80"
-        readonly
-      >
+<label>Nível para DESLIGAR (%)</label>
+<input
+  id="nivelDesligar"
+  type="number"
+  min="80"
+  max="80"
+  value="80"
+  readonly
+>
 
       <label>Tempo máximo da bomba (min)</label>
       <input
@@ -379,11 +379,11 @@
 
   const c = snapshot.val() || {};
 
-  $('nivelLigar').value =
-    c.nivel_ligar ?? 40;
+$('margemQueda').value =
+  c.margem_queda ?? 5;
 
-  $('nivelDesligar').value =
-    80;
+$('nivelDesligar').value =
+  80;
 
   $('timeoutBomba').value =
     c.timeout_bomba ?? 90;
@@ -433,8 +433,8 @@
 
     function salvar() {
 
-      const nivelLigar =
-        +$('nivelLigar').value;
+      const margemQueda =
+  +$('margemQueda').value;
 
       const timeoutBomba =
         +$('timeoutBomba').value;
