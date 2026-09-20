@@ -284,6 +284,7 @@ function comandoBomba(cmd){
 
 
 function comandoModo(modo){
+  console.log(">>> comandoModo CHAMADO:", modo, new Date().toLocaleTimeString());
 
   database.ref('comandos/modo').set(modo)
     .then(()=>
