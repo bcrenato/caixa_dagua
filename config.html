@@ -131,9 +131,9 @@
       <h3 class="section-title">🤖 Automação da bomba</h3>
 
       <p class="section-description">
-        Define em qual nível a bomba será ligada e os parâmetros
-        de segurança do sistema.
-      </p>
+  Define a margem de queda do nível da água e os parâmetros
+  de segurança do sistema.
+</p>
 
       <label>Margem de queda (%)</label>
 <input
@@ -179,9 +179,10 @@
       <h3 class="section-title">🎚️ Calibração das boias</h3>
 
       <p class="section-description">
-        Informe a porcentagem real correspondente à posição física
-        de cada boia no reservatório.
-      </p>
+  Informe o nível real da água correspondente à posição física
+  de cada boia. Esses valores são usados como referência
+  durante o enchimento da caixa.
+</p>
 
       <label>Boia física 1 — posição inferior (%)</label>
       <input
@@ -476,13 +477,13 @@ const tela100 =
       // Verificação dos valores da automação
 
       if (
-        nivelLigar < 20 ||
-        nivelLigar >= 80 ||
-        timeoutBomba < 5 ||
-        timeoutBomba > 180 ||
-        debounce < 1 ||
-        debounce > 30
-      ) {
+  margemQueda < 1 ||
+  margemQueda > 20 ||
+  timeoutBomba < 5 ||
+  timeoutBomba > 180 ||
+  debounce < 1 ||
+  debounce > 30
+) {
 
         $('status').innerText =
           '❌ Verifique os valores da automação.';
@@ -549,9 +550,9 @@ if (
 
       db.ref('configuracao').update({
 
-  nivel_ligar: nivelLigar,
+  margem_queda: margemQueda,
 
-  nivel_desligar: 80,
+nivel_desligar: 80,
 
   timeout_bomba: timeoutBomba,
 
