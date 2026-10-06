@@ -394,7 +394,7 @@
 
 $('margemQueda').value = c.margem_queda ?? 5;
 $('nivelLigar').value = c.nivel_ligar ?? 40;
-$('nivelDesligar').value = 80;
+$('nivelDesligar').value = c.nivel_desligar ?? 80;
 
   $('timeoutBomba').value =
     c.timeout_bomba ?? 90;
@@ -447,12 +447,23 @@ $('nivelDesligar').value = 80;
     const margemQueda = +$('margemQueda').value;
 
     const nivelLigar = +$('nivelLigar').value;
+    const nivelDesligar = +$('nivelDesligar').value;
 
     if (nivelLigar < 20 || nivelLigar > 70) {
         $('status').innerText =
             '❌ O nível para ligar deve estar entre 20% e 70%.';
         return;
     }
+
+    if (
+  nivelDesligar < 20 ||
+  nivelDesligar > 100 ||
+  nivelDesligar <= nivelLigar
+) {
+  $('status').innerText =
+    '❌ O nível para desligar deve ser maior que o nível para ligar.';
+  return;
+}
 
     // resto da função salvar...
 
@@ -571,7 +582,7 @@ if (
 
   margem_queda: margemQueda,
 nivel_ligar: nivelLigar,
-nivel_desligar: +$('nivelDesligar').value,
+nivel_desligar: nivelDesligar,
 
   timeout_bomba: timeoutBomba,
 
