@@ -163,15 +163,7 @@
       
       
       
-<label>Nível para DESLIGAR (%)</label>
-<input
-  id="nivelDesligar"
-  type="number"
-  min="80"
-  max="80"
-  value="80"
-  readonly
->
+<input id="nivelDesligar" type="number" min="20" max="100" value="80">
 
       
       <label>Tempo máximo da bomba (min)</label>
@@ -579,7 +571,7 @@ if (
 
   margem_queda: margemQueda,
 nivel_ligar: nivelLigar,
-nivel_desligar: 80,
+nivel_desligar: +$('nivelDesligar').value,
 
   timeout_bomba: timeoutBomba,
 
