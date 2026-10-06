@@ -156,6 +156,13 @@
   20% → 15%
 </div>
       
+
+
+<label>Nível para LIGAR (%)</label>
+<input id="nivelLigar" type="number" min="20" max="70" value="40">
+      
+      
+      
 <label>Nível para DESLIGAR (%)</label>
 <input
   id="nivelDesligar"
@@ -166,6 +173,7 @@
   readonly
 >
 
+      
       <label>Tempo máximo da bomba (min)</label>
       <input
         id="timeoutBomba"
@@ -392,11 +400,9 @@
 
   const c = snapshot.val() || {};
 
-$('margemQueda').value =
-  c.margem_queda ?? 5;
-
-$('nivelDesligar').value =
-  80;
+$('margemQueda').value = c.margem_queda ?? 5;
+$('nivelLigar').value = c.nivel_ligar ?? 40;
+$('nivelDesligar').value = 80;
 
   $('timeoutBomba').value =
     c.timeout_bomba ?? 90;
@@ -446,8 +452,17 @@ $('nivelDesligar').value =
 
     function salvar() {
 
-      const margemQueda =
-  +$('margemQueda').value;
+    const margemQueda = +$('margemQueda').value;
+
+    const nivelLigar = +$('nivelLigar').value;
+
+    if (nivelLigar < 20 || nivelLigar > 70) {
+        $('status').innerText =
+            '❌ O nível para ligar deve estar entre 20% e 70%.';
+        return;
+    }
+
+    // resto da função salvar...
 
       const timeoutBomba =
         +$('timeoutBomba').value;
@@ -563,7 +578,7 @@ if (
       db.ref('configuracao').update({
 
   margem_queda: margemQueda,
-
+nivel_ligar: nivelLigar,
 nivel_desligar: 80,
 
   timeout_bomba: timeoutBomba,
