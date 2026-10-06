@@ -237,6 +237,7 @@ function atualizarAutomacao(d){
 }
 
 
+```javascript
 database.ref('/').on('value',s=>{
 
   const d=s.val();
@@ -252,9 +253,42 @@ database.ref('/').on('value',s=>{
       +d.litros||litrosTronco(+d.nivel)
     );
 
-  atualizarAutomacao(d)
+  atualizarAutomacao(d);
+
+
+  // ==================================================
+  // INFORMAÇÕES DO FIRMWARE
+  // ==================================================
+
+  if(d.dispositivo){
+
+    const firmware =
+      d.dispositivo.firmware || 'Desconhecido';
+
+    const inicioFirmware =
+      d.dispositivo.inicio_firmware || 'Desconhecido';
+
+
+    const firmwareEl =
+      document.getElementById('firmware');
+
+    const inicioFirmwareEl =
+      document.getElementById('inicioFirmware');
+
+
+    if(firmwareEl)
+      firmwareEl.innerText =
+        firmware;
+
+
+    if(inicioFirmwareEl)
+      inicioFirmwareEl.innerText =
+        inicioFirmware;
+  }
 
 });
+```
+
 
 
 database.ref('configuracao').on('value',s=>{
