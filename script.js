@@ -237,7 +237,6 @@ function atualizarAutomacao(d){
 }
 
 
-```javascript
 database.ref('/').on('value',s=>{
 
   const d=s.val();
