@@ -286,7 +286,6 @@ database.ref('/').on('value',s=>{
   }
 
 });
-```
 
 
 
