@@ -305,82 +305,20 @@ function comandoBomba(cmd){
       :'Desligar a bomba?'
   ))return;
 
-  const url =
-    cmd==='ON'
-      ?'http://192.168.1.72/bomba/on'
-      :'http://192.168.1.72/bomba/off';
-
-  fetch(url)
-    .then(async response=>{
-
-      const dados=await response.json();
-
-      if(!response.ok || !dados.ok)
-        throw new Error('Falha no comando');
-
-      alert(
-        cmd==='ON'
-          ?'Bomba LIGADA com sucesso.'
-          :'Bomba DESLIGADA com sucesso.'
-      );
-
-    })
-    .catch(erro=>{
-
-      console.error('Erro ao comandar bomba:',erro);
-
-      alert(
-        'Não foi possível enviar o comando ao ESP32.'
-      );
-
-    });
+  database.ref('comandos/bomba').set(cmd)
+    .then(()=>
+      alert('Comando enviado ao ESP8266.')
+    )
 }
 
 
 function comandoModo(modo){
+  console.log(">>> comandoModo CHAMADO:", modo, new Date().toLocaleTimeString());
 
-  console.log(
-    ">>> comandoModo CHAMADO:",
-    modo,
-    new Date().toLocaleTimeString()
-  );
-
-  if(modo==='AUTO'){
-
-    fetch('http://192.168.1.72/bomba/auto')
-      .then(async response=>{
-
-        const dados=await response.json();
-
-        if(!response.ok || !dados.ok)
-          throw new Error('Falha no modo automático');
-
-        alert('Modo AUTOMÁTICO ativado.');
-
-      })
-      .catch(erro=>{
-
-        console.error(
-          'Erro ao ativar automático:',
-          erro
-        );
-
-        alert(
-          'Não foi possível ativar o modo AUTOMÁTICO.'
-        );
-
-      });
-
-    return;
-  }
-
-  if(modo==='MANUAL'){
-
-    alert(
-      'O modo MANUAL é ativado automaticamente ao usar LIGAR ou DESLIGAR.'
-    );
-
-  }
+  database.ref('comandos/modo').set(modo)
+    .then(()=>
+      alert('Modo '+modo+' enviado ao ESP8266.')
+    )
 
 }
 
