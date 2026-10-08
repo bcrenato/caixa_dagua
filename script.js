@@ -420,3 +420,171 @@ setInterval(()=>{
 
 },60000);
 
+/* =========================================================
+   HISTÓRICO DA BOMBA
+   ========================================================= */
+
+function formatarDuracao(segundos){
+
+  segundos = Number(segundos) || 0;
+
+  const horas = Math.floor(segundos / 3600);
+  const minutos = Math.floor((segundos % 3600) / 60);
+  const seg = segundos % 60;
+
+  return String(horas).padStart(2,'0') + ':' +
+         String(minutos).padStart(2,'0') + ':' +
+         String(seg).padStart(2,'0');
+}
+
+
+function carregarHistoricoBomba(){
+
+  database.ref('historico_bomba').on('value',s=>{
+
+    const dados = s.val();
+
+    const tabela =
+      document.getElementById(
+        'historicoBombaTabela'
+      );
+
+    if(!tabela)return;
+
+
+    if(!dados){
+
+      tabela.innerHTML = `
+        <tr>
+          <td colspan="5"
+              style="
+                padding:15px;
+                text-align:center;
+                color:#94a3b8;
+              ">
+            Nenhum ciclo registrado.
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+
+    /*
+     * Converte o objeto do Firebase
+     * em lista.
+     */
+
+    const registros =
+      Object.keys(dados).map(chave=>({
+
+        chave:chave,
+        ...dados[chave]
+
+      }));
+
+
+    /*
+     * Mais recentes primeiro.
+     */
+
+    registros.sort((a,b)=>{
+
+      const da =
+        new Date(
+          a.data_inicio?.replace(
+            /(\d{2})\/(\d{2})\/(\d{4})/,
+            '$3-$2-$1'
+          )
+        );
+
+      const db =
+        new Date(
+          b.data_inicio?.replace(
+            /(\d{2})\/(\d{2})\/(\d{4})/,
+            '$3-$2-$1'
+          )
+        );
+
+      return db-da;
+
+    });
+
+
+    /*
+     * Mostrar somente os 30 últimos ciclos.
+     */
+
+    const ultimos =
+      registros.slice(0,30);
+
+
+    tabela.innerHTML =
+      ultimos.map(r=>{
+
+        const nivelInicio =
+          r.nivel_inicio ?? '-';
+
+        const nivelFim =
+          r.nivel_fim ?? '-';
+
+        const dataHora =
+          r.data_inicio || '-';
+
+        const duracao =
+          formatarDuracao(
+            r.duracao_segundos
+          );
+
+        const modo =
+          r.modo === 'AUTOMATICO'
+            ? 'AUTO'
+            : (r.modo || '-');
+
+        const motivo =
+          r.motivo || '-';
+
+
+        return `
+          <tr
+            style="
+              border-top:1px solid #334155;
+            "
+          >
+
+            <td style="padding:10px 8px;">
+              ${nivelInicio}% → ${nivelFim}%
+            </td>
+
+            <td style="padding:10px 8px;">
+              ${dataHora}
+            </td>
+
+            <td style="padding:10px 8px;">
+              ${duracao}
+            </td>
+
+            <td style="padding:10px 8px;">
+              ${modo}
+            </td>
+
+            <td style="padding:10px 8px;">
+              ${motivo}
+            </td>
+
+          </tr>
+        `;
+
+      }).join('');
+
+  });
+
+}
+
+
+/* =========================================================
+   INICIAR HISTÓRICO
+   ========================================================= */
+
+carregarHistoricoBomba();
